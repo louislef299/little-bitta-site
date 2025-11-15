@@ -1,4 +1,3 @@
-
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
@@ -7,6 +6,16 @@ Default to using Bun instead of Node.js.
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Bun automatically loads .env, so don't use dotenv.
+
+## Learning Log
+
+Maintain a learning log in the README.md to help the user learn Bun and TypeScript throughout the project:
+
+- Add new dated entries when entering a new learning scope
+- Entries should be in ascending order (oldest first)
+- Each entry should include the date (YYYY-MM-DD format) and the scope of learning
+- Suggest adding new sections when we encounter new concepts or patterns
+- The user will delete sections as they become comfortable with those concepts
 
 ## APIs
 
