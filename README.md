@@ -3,107 +3,49 @@ the little bitta website
 
 ## Learning Log
 
-### 2025-11-15: Bun CLI Basics
+### 2025-11-15: just - Command Runner
 
-**Running Programs**
+`just` is a modern command runner that improves on Make in several key ways. Unlike Make, which was designed for building files with complex dependency tracking, just is purpose-built for running project commands. It eliminates Make's quirks like needing `.PHONY` declarations, provides better error messages with source context, works consistently across platforms (Linux, macOS, Windows), and has a cleaner syntax with features like documentation comments that appear in help output. Just also loads `.env` files automatically and validates recipes before running them, catching errors like circular dependencies or typos upfront.
+
+**Essential Commands**
+
 ```bash
-# Run a TypeScript/JavaScript file directly
-bun run index.ts
-bun index.ts
+# List all available recipes with their descriptions
+just --list
+# or simply
+just
 
-# Run with hot reload (restarts on file changes)
-bun --hot index.ts
+# Run a specific recipe
+just build
+just test
+just run
 
-# Run with watch mode (rebuilds on file changes)
-bun --watch index.ts
+# Show a recipe's commands without executing them
+just --show build
+
+# Run recipes from a different directory
+just --working-directory /path/to/project build
+
+# Run multiple recipes in sequence
+just build test lint
+
+# Pass arguments to a recipe (if the recipe accepts them)
+just deploy production
+
+# Choose a different justfile
+just --justfile custom.justfile build
+
+# Set variables for a recipe
+just --set variable value recipe-name
+
+# See what just would do without running it (dry-run)
+just --dry-run build
 ```
 
-**Building Programs**
-```bash
-# Build a single file (outputs to stdout by default)
-bun build index.ts
+**Key Syntax Features**
 
-# Build with output file
-bun build index.ts --outfile=dist/index.js
-
-# Build HTML files (bundles all imports)
-bun build index.html --outdir=dist
-
-# Build with minification
-bun build index.ts --minify --outfile=dist/index.js
-
-# Build for production (minified, optimized)
-bun build index.ts --minify --target=browser --outfile=dist/index.js
-```
-
-**Package Management**
-```bash
-# Install all dependencies from package.json
-bun install
-
-# Add a package
-bun add <package-name>
-
-# Add a dev dependency
-bun add -d <package-name>
-
-# Remove a package
-bun remove <package-name>
-
-# Update all packages
-bun update
-
-# Update a specific package
-bun update <package-name>
-```
-
-**Testing**
-```bash
-# Run all tests
-bun test
-
-# Run tests in watch mode
-bun test --watch
-
-# Run a specific test file
-bun test path/to/test.test.ts
-
-# Run tests with coverage
-bun test --coverage
-```
-
-**Linting**
-```bash
-# Bun doesn't include a built-in linter
-# Use ESLint or Biome for linting:
-
-# Install ESLint
-bun add -d eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
-
-# Or install Biome (faster alternative)
-bun add -d @biomejs/biome
-
-# Run ESLint
-bun eslint .
-
-# Run Biome
-bun biome check .
-```
-
-**Other Useful Commands**
-```bash
-# Initialize a new project
-bun init
-
-# Run a script from package.json
-bun run <script-name>
-
-# Run a shell command
-bun x <command>  # or bunx <command>
-
-# Check Bun version
-bun --version
-
-# Upgrade Bun itself
-bun upgrade
-```
+- Recipes are commands stored in a `justfile`
+- Use `@` before commands to suppress echoing them
+- Add `# comments` above recipes to document them (shown in `--list`)
+- No tabs required (unlike Make) - use any consistent indentation
+- First recipe or `default:` recipe runs when you type `just` with no arguments
