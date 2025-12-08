@@ -1,8 +1,11 @@
 # Cloud Architecture Guide
 
-This document covers the cloud-native architecture for Little Bitta Granola e-commerce site using Netlify Functions + Turso.
+This document covers the cloud-native architecture for Little Bitta Granola
+e-commerce site using Netlify Functions + Turso.
 
-> **See also:** [Customer-Facing Site](customer-facing.md) for storefront implementation and [Admin Panel](admin-ui.md) for product management interface.
+> **See also:** [Customer-Facing Site](customer-facing.md) for storefront
+> implementation and [Admin Panel](admin-ui.md) for product management
+> interface.
 
 ## Architecture Decision
 
@@ -54,7 +57,8 @@ This document covers the cloud-native architecture for Little Bitta Granola e-co
 
 ### What is Turso?
 
-Turso is a cloud-hosted SQLite database with HTTP API. Same SQL syntax as `bun:sqlite`, but works in serverless environments.
+Turso is a cloud-hosted SQLite database with HTTP API. Same SQL syntax as
+`bun:sqlite`, but works in serverless environments.
 
 **Key features:**
 - SQLite-compatible (use same schema/queries)

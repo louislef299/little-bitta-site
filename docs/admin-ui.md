@@ -1,8 +1,11 @@
 # Admin Panel Architecture
 
-This document outlines the admin panel implementation for managing products and orders using Netlify Functions, Turso, and Alpine.js.
+This document outlines the admin panel implementation for managing products and
+orders using Netlify Functions, Turso, and Alpine.js.
 
-> **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure setup and [Customer-Facing Site](customer-facing.md) for the public storefront.
+> **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure
+> setup and [Customer-Facing Site](customer-facing.md) for the public
+> storefront.
 
 ## Overview
 
