@@ -2,6 +2,8 @@
 
 This document covers the cloud-native architecture for Little Bitta Granola e-commerce site using Netlify Functions + Turso.
 
+> **See also:** [Customer-Facing Site](customer-facing.md) for storefront implementation and [Admin Panel](admin-ui.md) for product management interface.
+
 ## Architecture Decision
 
 **Chosen Stack:**

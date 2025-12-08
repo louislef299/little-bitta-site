@@ -1,380 +1,598 @@
 # Customer-Facing Site Architecture
 
-This document outlines the hybrid server-rendered + client-side interactive architecture for the Little Bitta Granola storefront.
+This document outlines the customer-facing storefront implementation using static HTML, Alpine.js, Netlify Functions, and Turso.
 
-## Architecture Overview
+> **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure and [Admin Panel](admin-ui.md) for product management.
 
-```
-┌─────────────────────────────────────────┐
-│         Bun Server (index.ts)           │
-├─────────────────────────────────────────┤
-│                                         │
-│  Customer Routes                        │
-│  /              → index.html            │
-│  /products/:id  → product.html          │
-│  /cart          → cart.html             │
-│                                         │
-│  Admin Routes (authenticated)           │
-│  /admin/*       → admin pages           │
-│                                         │
-│  Public API (for customer site)         │
-│  GET /api/products                      │
-│  GET /api/products/:id                  │
-│  POST /api/checkout                     │
-│                                         │
-│  Admin API (authenticated)              │
-│  POST /api/admin/products               │
-│  PUT /api/admin/products/:id            │
-│  DELETE /api/admin/products/:id         │
-│                                         │
-└─────────────────────────────────────────┘
-              │
-              ▼
-        ┌───────────┐
-        │  SQLite   │
-        │  Database │
-        └───────────┘
-```
+## Overview
 
-## Hybrid Rendering Strategy
+The customer-facing site is a fast, SEO-friendly storefront with client-side interactivity for shopping cart and checkout.
+
+**Technology:**
+- **Frontend:** Static HTML/CSS with Alpine.js
+- **Backend:** Netlify Functions (serverless API)
+- **Database:** Turso (SQLite-compatible)
+- **Payments:** Square Web Payments SDK
+- **Hosting:** Netlify (CDN, SSL, DDoS included)
+
+## Architecture Diagram
 
 ```
-Initial Page Load: Server-rendered HTML (SEO-friendly)
-        ↓
-Alpine.js loads and adds interactivity
-        ↓
-Cart, filters, search: Client-side Alpine.js
-        ↓
-Checkout: POST to /api/checkout → Square
+┌─────────────────────────────────────────────┐
+│       Netlify Edge Network (CDN)            │
+│  Automatic SSL, DDoS Protection, Caching    │
+└───────────────┬─────────────────────────────┘
+                │
+    ┌───────────┴────────────┐
+    │                        │
+    ▼                        ▼
+┌──────────┐          ┌─────────────┐
+│  Static  │          │   Netlify   │
+│   HTML   │          │  Functions  │
+│   CSS    │          │   (API)     │
+│ Alpine.js│          └──────┬──────┘
+└──────────┘                 │
+                 ┌───────────┼──────────┐
+                 │           │          │
+                 ▼           ▼          ▼
+            ┌────────┐  ┌───────┐  ┌────────┐
+            │ Turso  │  │Square │  │ Email  │
+            │  (DB)  │  │  API  │  │Service │
+            └────────┘  └───────┘  └────────┘
 ```
 
-### Why Hybrid?
+## Rendering Strategy
 
-**Server-rendered initial HTML:**
-- Google/search engines see full product listings
-- Fast initial page load
-- Works without JavaScript
+**Static HTML + Client-Side Hydration:**
 
-**Alpine.js for interactivity:**
-- Shopping cart management
-- Real-time filtering/search
-- Add-to-cart animations
-- No page refreshes needed
+```
+Initial Page Load:
+  → Static HTML served from Netlify CDN (fast, SEO-friendly)
+  → Products rendered server-side or fetched via API
 
-## Server Implementation
+Alpine.js Loads:
+  → Adds interactivity (cart, filters, animations)
+  → No page refreshes needed
 
-```ts
-// index.ts
-import { Database } from "bun:sqlite";
-const db = new Database("store.db");
+Checkout Flow:
+  → Square Web Payment SDK (PCI-compliant)
+  → POST to Netlify Function → Turso + Square API
+```
 
-Bun.serve({
-  routes: {
-    "/": {
-      GET: (req) => {
-        // Fetch products from database
-        const products = db.query("SELECT * FROM products WHERE active = 1").all();
+## Frontend Implementation
 
-        // Server-render HTML with products
-        return new Response(renderStorefront(products), {
-          headers: { "Content-Type": "text/html" }
-        });
-      }
-    },
+### Homepage (Static HTML)
 
-    "/products/:id": {
-      GET: (req) => {
-        const product = db.query("SELECT * FROM products WHERE id = ?")
-          .get(req.params.id);
+```html
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Little Bitta Granola - Artisan Granola from Minnesota</title>
+  <meta name="description" content="Premium handcrafted granola made with organic ingredients. Four unique flavors available.">
 
-        return new Response(renderProductPage(product), {
-          headers: { "Content-Type": "text/html" }
-        });
-      }
-    },
+  <!-- SEO -->
+  <meta property="og:title" content="Little Bitta Granola">
+  <meta property="og:description" content="Premium handcrafted granola">
+  <meta property="og:image" content="https://littlebitta.com/images/og-image.jpg">
 
-    // Public API endpoints
-    "/api/products": {
-      GET: (req) => {
-        const products = db.query("SELECT * FROM products WHERE active = 1").all();
-        return Response.json(products);
-      }
-    },
+  <!-- Alpine.js -->
+  <script src="//unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
-    "/api/products/:id": {
-      GET: (req) => {
-        const product = db.query("SELECT * FROM products WHERE id = ?")
-          .get(req.params.id);
-        return Response.json(product);
-      }
-    },
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body x-data="storefront()" x-init="init()">
 
-    "/api/checkout": {
-      POST: async (req) => {
-        const { items, email } = await req.json();
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <h1>Little Bitta Granola</h1>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/about.html">About</a>
+        <button @click="showCart = !showCart" class="cart-button">
+          Cart (<span x-text="cart.length">0</span>)
+        </button>
+      </nav>
+    </div>
+  </header>
 
-        // Create order in database
-        const total = calculateTotal(items);
-        const orderId = db.query(
-          "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')"
-        ).run(email, total).lastInsertRowid;
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h2>Artisan Granola Made in Minnesota</h2>
+      <p>Small-batch, handcrafted granola with organic ingredients</p>
+    </div>
+  </section>
 
-        // Insert order items
-        items.forEach(item => {
-          db.query(
-            "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)"
-          ).run(orderId, item.productId, item.quantity, item.price);
-        });
+  <!-- Products Section -->
+  <section class="products">
+    <div class="container">
+      <h2>Our Granola</h2>
 
-        // Process payment with Square
-        const squarePayment = await processSquarePayment(total, email);
+      <!-- Loading State -->
+      <div x-show="loading">Loading products...</div>
 
-        // Update order with Square payment ID
-        db.query("UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?")
-          .run(squarePayment.id, orderId);
+      <!-- Products Grid -->
+      <div class="product-grid" x-show="!loading">
+        <template x-for="product in products" :key="product.id">
+          <article class="product-card" itemscope itemtype="http://schema.org/Product">
+            <img :src="product.image_url" :alt="product.name" itemprop="image">
 
-        return Response.json({
-          success: true,
-          orderId,
-          paymentId: squarePayment.id
-        });
-      }
-    }
-  },
+            <h3 itemprop="name" x-text="product.name"></h3>
+            <p class="description" itemprop="description" x-text="product.description"></p>
 
-  development: {
-    hmr: true,
-    console: true
-  }
-});
+            <div class="product-footer" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+              <meta itemprop="priceCurrency" content="USD">
+              <span class="price" itemprop="price" :content="product.price">
+                $<span x-text="product.price"></span>
+              </span>
 
-function renderStorefront(products) {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Little Bitta Granola - Artisan Granola</title>
-      <meta name="description" content="Premium handcrafted granola made with organic ingredients">
-      <script src="//unpkg.com/alpinejs" defer></script>
-      <link rel="stylesheet" href="/styles.css">
-    </head>
-    <body>
-      <div x-data="store()">
-        <header>
-          <h1>Little Bitta Granola</h1>
-          <nav>
-            <a href="/">Home</a>
-            <button @click="showCart = !showCart">
-              Cart (<span x-text="cart.length">0</span>)
-            </button>
-          </nav>
-        </header>
-
-        <main>
-          <!-- Products are server-rendered for SEO -->
-          <div class="products">
-            ${products.map(p => `
-              <article class="product" itemscope itemtype="http://schema.org/Product">
-                <img src="${p.image_url}" alt="${p.name}" itemprop="image">
-                <h2 itemprop="name">${p.name}</h2>
-                <p itemprop="description">${p.description}</p>
-                <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-                  <meta itemprop="priceCurrency" content="USD">
-                  <span itemprop="price" content="${p.price}">$${p.price}</span>
-                  ${p.stock > 0
-                    ? `<link itemprop="availability" href="http://schema.org/InStock">
-                       <button @click="addToCart(${p.id}, '${p.name}', ${p.price})">
-                         Add to Cart
-                       </button>`
-                    : `<link itemprop="availability" href="http://schema.org/OutOfStock">
-                       <span>Out of Stock</span>`
-                  }
+              <template x-if="product.stock > 0">
+                <div>
+                  <link itemprop="availability" href="http://schema.org/InStock">
+                  <button
+                    @click="addToCart(product)"
+                    class="add-to-cart"
+                  >
+                    Add to Cart
+                  </button>
                 </div>
-              </article>
-            `).join('')}
-          </div>
+              </template>
 
-          <!-- Cart is client-side interactive -->
-          <aside x-show="showCart" class="cart-sidebar">
-            <h3>Shopping Cart</h3>
-            <template x-if="cart.length === 0">
-              <p>Your cart is empty</p>
-            </template>
-
-            <template x-if="cart.length > 0">
-              <div>
-                <ul>
-                  <template x-for="item in cart" :key="item.id">
-                    <li>
-                      <span x-text="item.name"></span> -
-                      <span x-text="'$' + item.price"></span>
-                      <button @click="removeFromCart(item.id)">Remove</button>
-                    </li>
-                  </template>
-                </ul>
-
-                <p>Total: $<span x-text="cartTotal"></span></p>
-                <button @click="checkout()">Checkout</button>
-              </div>
-            </template>
-          </aside>
-        </main>
+              <template x-if="product.stock === 0">
+                <div>
+                  <link itemprop="availability" href="http://schema.org/OutOfStock">
+                  <span class="out-of-stock">Out of Stock</span>
+                </div>
+              </template>
+            </div>
+          </article>
+        </template>
       </div>
+    </div>
+  </section>
 
-      <script>
-        function store() {
-          return {
-            cart: JSON.parse(localStorage.getItem('cart') || '[]'),
-            showCart: false,
+  <!-- Shopping Cart Sidebar -->
+  <aside class="cart-sidebar" :class="{ 'open': showCart }" x-show="showCart" @click.away="showCart = false">
+    <div class="cart-header">
+      <h3>Shopping Cart</h3>
+      <button @click="showCart = false" class="close-btn">&times;</button>
+    </div>
 
-            get cartTotal() {
-              return this.cart.reduce((sum, item) => sum + item.price, 0).toFixed(2);
-            },
+    <div class="cart-content">
+      <template x-if="cart.length === 0">
+        <p class="empty-cart">Your cart is empty</p>
+      </template>
 
-            addToCart(id, name, price) {
-              this.cart.push({ id, name, price });
-              this.saveCart();
-            },
+      <template x-if="cart.length > 0">
+        <div>
+          <ul class="cart-items">
+            <template x-for="(item, index) in cart" :key="index">
+              <li class="cart-item">
+                <div class="item-details">
+                  <span class="item-name" x-text="item.name"></span>
+                  <span class="item-price">$<span x-text="item.price"></span></span>
+                </div>
+                <button @click="removeFromCart(index)" class="remove-btn">Remove</button>
+              </li>
+            </template>
+          </ul>
 
-            removeFromCart(id) {
-              const index = this.cart.findIndex(item => item.id === id);
-              if (index > -1) {
-                this.cart.splice(index, 1);
-                this.saveCart();
-              }
-            },
+          <div class="cart-footer">
+            <div class="cart-total">
+              <strong>Total:</strong>
+              <strong>$<span x-text="cartTotal.toFixed(2)"></span></strong>
+            </div>
+            <button @click="checkout()" class="checkout-btn">Proceed to Checkout</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </aside>
 
-            saveCart() {
-              localStorage.setItem('cart', JSON.stringify(this.cart));
-            },
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Little Bitta Granola. Made in Minnesota.</p>
+    </div>
+  </footer>
 
-            async checkout() {
-              const email = prompt('Enter your email:');
-              if (!email) return;
+  <script>
+    function storefront() {
+      return {
+        products: [],
+        cart: JSON.parse(localStorage.getItem('cart') || '[]'),
+        showCart: false,
+        loading: true,
 
-              const items = this.cart.map(item => ({
-                productId: item.id,
-                quantity: 1,
-                price: item.price
-              }));
+        async init() {
+          await this.loadProducts();
+        },
 
-              const response = await fetch('/api/checkout', {
+        async loadProducts() {
+          try {
+            const res = await fetch('/.netlify/functions/products');
+            this.products = await res.json();
+          } catch (error) {
+            console.error('Failed to load products:', error);
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        get cartTotal() {
+          return this.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+        },
+
+        addToCart(product) {
+          this.cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price
+          });
+          this.saveCart();
+          this.showCart = true;
+        },
+
+        removeFromCart(index) {
+          this.cart.splice(index, 1);
+          this.saveCart();
+        },
+
+        saveCart() {
+          localStorage.setItem('cart', JSON.stringify(this.cart));
+        },
+
+        async checkout() {
+          // Redirect to checkout page with cart data
+          window.location.href = `/checkout.html?items=${encodeURIComponent(JSON.stringify(this.cart))}`;
+        }
+      };
+    }
+  </script>
+</body>
+</html>
+```
+
+### Checkout Page with Square
+
+```html
+<!-- public/checkout.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Little Bitta Granola</title>
+  <script src="//unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://web.squarecdn.com/v1/square.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body x-data="checkoutPage()" x-init="init()">
+  <div class="container">
+    <h1>Checkout</h1>
+
+    <!-- Order Summary -->
+    <div class="order-summary">
+      <h2>Order Summary</h2>
+      <ul>
+        <template x-for="item in items">
+          <li>
+            <span x-text="item.name"></span>
+            <span>$<span x-text="item.price"></span></span>
+          </li>
+        </template>
+      </ul>
+      <div class="total">
+        <strong>Total:</strong>
+        <strong>$<span x-text="total.toFixed(2)"></span></strong>
+      </div>
+    </div>
+
+    <!-- Customer Info -->
+    <form @submit.prevent="processPayment">
+      <h2>Contact Information</h2>
+      <input x-model="email" type="email" placeholder="Email" required>
+
+      <h2>Payment</h2>
+      <div id="card-container"></div>
+
+      <button type="submit" :disabled="processing">
+        <span x-show="!processing">Pay $<span x-text="total.toFixed(2)"></span></span>
+        <span x-show="processing">Processing...</span>
+      </button>
+
+      <p x-show="error" style="color: red;" x-text="error"></p>
+    </form>
+  </div>
+
+  <script>
+    function checkoutPage() {
+      return {
+        items: [],
+        email: '',
+        total: 0,
+        processing: false,
+        error: '',
+        card: null,
+
+        async init() {
+          // Get cart from URL params
+          const params = new URLSearchParams(window.location.search);
+          this.items = JSON.parse(decodeURIComponent(params.get('items') || '[]'));
+          this.total = this.items.reduce((sum, item) => sum + parseFloat(item.price), 0);
+
+          // Initialize Square
+          await this.initializeSquare();
+        },
+
+        async initializeSquare() {
+          const payments = Square.payments(
+            'YOUR_SQUARE_APP_ID',
+            'YOUR_SQUARE_LOCATION_ID'
+          );
+
+          this.card = await payments.card();
+          await this.card.attach('#card-container');
+        },
+
+        async processPayment() {
+          if (!this.email) {
+            this.error = 'Please enter your email';
+            return;
+          }
+
+          this.processing = true;
+          this.error = '';
+
+          try {
+            // Tokenize card
+            const result = await this.card.tokenize();
+            if (result.status === 'OK') {
+              // Send to backend
+              const response = await fetch('/.netlify/functions/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items, email })
+                body: JSON.stringify({
+                  sourceId: result.token,
+                  items: this.items.map(item => ({
+                    productId: item.id,
+                    quantity: 1,
+                    price: item.price
+                  })),
+                  email: this.email
+                })
               });
 
-              const result = await response.json();
+              const data = await response.json();
 
-              if (result.success) {
-                alert('Order placed successfully!');
-                this.cart = [];
-                this.saveCart();
-                this.showCart = false;
+              if (data.success) {
+                // Clear cart
+                localStorage.removeItem('cart');
+                // Redirect to success page
+                window.location.href = `/success.html?order=${data.orderId}`;
               } else {
-                alert('Checkout failed. Please try again.');
+                this.error = data.error || 'Payment failed';
               }
+            } else {
+              this.error = 'Card tokenization failed';
             }
-          };
+          } catch (error) {
+            console.error('Payment error:', error);
+            this.error = 'Payment failed. Please try again.';
+          } finally {
+            this.processing = false;
+          }
         }
-      </script>
-    </body>
-    </html>
-  `;
-}
-
-function renderProductPage(product) {
-  // Similar structure but for individual product detail page
-  return `<!DOCTYPE html>...`;
-}
+      };
+    }
+  </script>
+</body>
+</html>
 ```
 
-## How Customer Site Connects to Admin
+## Backend: Netlify Functions
 
-**Flow:**
+### Products API
 
-1. **Admin adds product** via `/admin/products`:
-   - POST to `/api/admin/products` (authenticated)
-   - Data inserted into `products` table in SQLite
+```ts
+// netlify/functions/products.ts
+import { createClient } from "@libsql/client";
 
-2. **Customer visits homepage**:
-   - Server queries `products` table
-   - Renders HTML with products embedded
-   - HTML is SEO-friendly (Google sees it)
+const db = createClient({
+  url: process.env.TURSO_URL!,
+  authToken: process.env.TURSO_TOKEN!
+});
 
-3. **Customer browses**:
-   - Alpine.js provides interactive cart
-   - No page reloads needed for cart operations
-   - Cart state stored in localStorage
+export default async (req: Request) => {
+  try {
+    const result = await db.execute(
+      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1"
+    );
 
-4. **Customer checks out**:
-   - POST to `/api/checkout` (public endpoint)
-   - Creates order in database
-   - Processes payment via Square API
-   - Updates order status
+    return new Response(JSON.stringify(result.rows), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=60" // Cache for 1 minute
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+    return new Response(JSON.stringify({ error: "Failed to load products" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+};
+```
 
-## Key Features
+### Checkout API
 
-### SEO Optimization
-- Server-rendered product listings
-- Semantic HTML with schema.org markup
-- Meta tags for social sharing
-- Fast initial page load
+```ts
+// netlify/functions/checkout.ts
+import { createClient } from "@libsql/client";
+import { Client, Environment } from "square";
 
-### Client-Side Interactivity
-- Shopping cart (Alpine.js + localStorage)
-- Real-time cart updates
-- No page refreshes
-- Smooth user experience
+const db = createClient({
+  url: process.env.TURSO_URL!,
+  authToken: process.env.TURSO_TOKEN!
+});
 
-### Payment Integration
-- Square for payment processing
-- Order tracking in SQLite
-- Email receipts (via Square)
-- Inventory updates on purchase
+const square = new Client({
+  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  environment: Environment.Production
+});
+
+export default async (req: Request) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  try {
+    const { sourceId, items, email } = await req.json();
+
+    // Calculate total
+    const total = items.reduce((sum: number, item: any) =>
+      sum + (parseFloat(item.price) * item.quantity), 0
+    );
+
+    // Create order in database
+    const orderResult = await db.execute({
+      sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
+      args: [email, total]
+    });
+    const orderId = orderResult.lastInsertRowid;
+
+    // Insert order items
+    for (const item of items) {
+      await db.execute({
+        sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+        args: [orderId, item.productId, item.quantity, item.price]
+      });
+    }
+
+    // Process payment with Square
+    const payment = await square.paymentsApi.createPayment({
+      sourceId,
+      amountMoney: {
+        amount: BigInt(Math.round(total * 100)), // Convert to cents
+        currency: "USD"
+      },
+      idempotencyKey: `order-${orderId}-${Date.now()}`
+    });
+
+    // Update order with payment ID
+    await db.execute({
+      sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
+      args: [payment.result.payment?.id, orderId]
+    });
+
+    return Response.json({
+      success: true,
+      orderId,
+      paymentId: payment.result.payment?.id
+    });
+
+  } catch (error) {
+    console.error("Checkout error:", error);
+    return Response.json({ error: "Checkout failed" }, { status: 500 });
+  }
+};
+```
 
 ## Data Flow
 
 ```
-┌──────────┐
-│  Admin   │
-│  Panel   │
-└────┬─────┘
-     │ POST /api/admin/products
-     ▼
-┌──────────┐
-│ SQLite   │
-│ Database │
-└────┬─────┘
-     │ SELECT * FROM products
-     ▼
-┌──────────┐     Alpine.js      ┌──────────┐
-│ Customer │  ◄─────────────────►│  Cart    │
-│   HTML   │   (interactivity)  │  State   │
-└────┬─────┘                     └────┬─────┘
-     │                                │
-     │ POST /api/checkout             │
-     ▼                                │
-┌──────────┐                          │
-│  Square  │ ◄────────────────────────┘
-│ Payment  │
-└──────────┘
+1. Customer visits homepage
+   ↓
+2. Browser loads static HTML from Netlify CDN (fast!)
+   ↓
+3. Alpine.js fetches products from /.netlify/functions/products
+   ↓
+4. Products displayed (from Turso database)
+   ↓
+5. Customer adds items to cart (Alpine.js + localStorage)
+   ↓
+6. Customer clicks checkout → /checkout.html
+   ↓
+7. Square Web SDK collects payment info (PCI-compliant)
+   ↓
+8. Square tokenizes card → sourceId
+   ↓
+9. POST to /.netlify/functions/checkout with sourceId + items
+   ↓
+10. Netlify Function:
+    - Creates order in Turso
+    - Processes payment with Square API
+    - Updates order status
+   ↓
+11. Redirect to success page
 ```
 
-## Benefits of This Architecture
+## SEO Optimization
 
-1. **SEO**: Search engines can index products
-2. **Performance**: Fast initial load (server-rendered)
-3. **UX**: Smooth interactions (Alpine.js)
-4. **Simplicity**: No build step, no complex framework
-5. **Control**: Single database, easy to manage
-6. **Cost**: No CMS fees, just hosting
+### Meta Tags
+```html
+<title>Little Bitta Granola - Artisan Granola from Minnesota</title>
+<meta name="description" content="Premium handcrafted granola...">
+<meta property="og:title" content="Little Bitta Granola">
+<meta property="og:image" content="/images/og-image.jpg">
+```
 
-## Trade-offs
+### Schema.org Markup
+```html
+<article itemscope itemtype="http://schema.org/Product">
+  <h3 itemprop="name">Peanut Butter Nutella</h3>
+  <p itemprop="description">Rich and creamy...</p>
+  <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+    <meta itemprop="priceCurrency" content="USD">
+    <span itemprop="price" content="10.00">$10.00</span>
+    <link itemprop="availability" href="http://schema.org/InStock">
+  </div>
+</article>
+```
 
-1. More server logic needed for rendering
-2. HTML generation in JavaScript (could use a template engine)
-3. Manual cache management if traffic grows
-4. No automatic image optimization (handle separately)
+### Performance
+- Static HTML served from CDN (fast first load)
+- Minimal JavaScript (Alpine.js is ~15KB)
+- Image optimization (use Cloudinary or imgix)
+- HTTP/2 and modern compression (automatic with Netlify)
+
+## Key Features
+
+### Shopping Experience
+- Fast page loads (static HTML + CDN)
+- Interactive cart (no page refreshes)
+- Persistent cart (localStorage)
+- Mobile-responsive design
+
+### Payment Processing
+- PCI-compliant (Square handles card data)
+- Multiple payment methods via Square
+- Secure checkout flow
+- Email receipts (via Square)
+
+### SEO & Discoverability
+- Server-side rendered product data
+- Schema.org markup
+- Social media preview tags
+- Fast Core Web Vitals
+
+## Performance Targets
+
+| Metric | Target | How |
+|--------|--------|-----|
+| First Contentful Paint | < 1s | Static HTML from CDN |
+| Time to Interactive | < 2s | Minimal JavaScript (Alpine.js) |
+| Lighthouse Score | > 90 | Optimized images, modern code |
+| SEO Score | 100 | Semantic HTML, meta tags, schema |
+
+## Related Documentation
+
+- [Cloud Architecture](cloud-arch.md) - Infrastructure, deployment, and scaling
+- [Admin Panel](admin-ui.md) - How to manage products shown on this site
