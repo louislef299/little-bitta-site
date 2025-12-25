@@ -41,7 +41,7 @@ e-commerce site using Netlify Functions + Turso.
 │          │        │  (Backend)  │
 │ - HTML   │        │             │
 │ - CSS    │        │ - API       │
-│ - Alpine │        │ - Admin     │
+│ - Svelte │        │ - Admin     │
 └──────────┘        └──────┬──────┘
                            │
               ┌────────────┼────────────┐
@@ -359,7 +359,7 @@ export default async (req: Request) => {
 <html>
 <head>
   <title>Admin - Little Bitta</title>
-  <script src="//unpkg.com/alpinejs" defer></script>
+  <script type="module" src="/admin.js"></script>
 </head>
 <body x-data="adminPanel()">
   <!-- Login Form -->
@@ -818,7 +818,7 @@ try {
 - [Netlify Functions Docs](https://docs.netlify.com/functions/overview/)
 - [Turso Quickstart](https://docs.turso.tech/quickstart)
 - [Square Web Payments SDK](https://developer.squareup.com/docs/web-payments/overview)
-- [Alpine.js Documentation](https://alpinejs.dev/)
+- [Svelte Documentation](https://svelte.dev/)
 - [Bun Runtime](https://bun.sh/docs)
 
 ## Conclusion

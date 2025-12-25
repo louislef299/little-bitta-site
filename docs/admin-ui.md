@@ -1,7 +1,7 @@
 # Admin Panel Architecture
 
 This document outlines the admin panel implementation for managing products and
-orders using Netlify Functions, Turso, and Alpine.js.
+orders using Netlify Functions, Turso, and Svelte.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure
 > setup and [Customer-Facing Site](customer-facing.md) for the public
@@ -15,7 +15,7 @@ The admin panel provides a web-based interface for managing:
 - Basic analytics (sales, inventory)
 
 **Technology:**
-- **Frontend:** Static HTML with Alpine.js
+- **Frontend:** Static HTML with Svelte
 - **Backend:** Netlify Functions (serverless API)
 - **Database:** Turso (SQLite-compatible)
 - **Authentication:** Simple token-based auth (expandable to JWT)
@@ -273,7 +273,7 @@ export default async (req: Request) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - Little Bitta</title>
-  <script src="//unpkg.com/alpinejs" defer></script>
+  <script type="module" src="/admin.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }

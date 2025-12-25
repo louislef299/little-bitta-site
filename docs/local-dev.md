@@ -11,7 +11,7 @@ This document covers setting up and running the Little Bitta Granola site locall
 - **SQLite** - Local database (instead of Turso)
 - **Square Sandbox** - Test payments without real money
 - **TypeScript** - Type-safe function development
-- **Alpine.js** - Frontend interactivity (no build step needed)
+- **Svelte** - Frontend interactivity with reactive components
 
 ## Project Structure
 

@@ -9,7 +9,7 @@ This document outlines the customer-facing storefront implementation using stati
 The customer-facing site is a fast, SEO-friendly storefront with client-side interactivity for shopping cart and checkout.
 
 **Technology:**
-- **Frontend:** Static HTML/CSS with Alpine.js
+- **Frontend:** Static HTML/CSS with Svelte
 - **Backend:** Netlify Functions (serverless API)
 - **Database:** Turso (SQLite-compatible)
 - **Payments:** Square Web Payments SDK
@@ -30,7 +30,7 @@ The customer-facing site is a fast, SEO-friendly storefront with client-side int
 │  Static  │          │   Netlify   │
 │   HTML   │          │  Functions  │
 │   CSS    │          │   (API)     │
-│ Alpine.js│          └──────┬──────┘
+│  Svelte  │          └──────┬──────┘
 └──────────┘                 │
                  ┌───────────┼──────────┐
                  │           │          │
@@ -50,7 +50,7 @@ Initial Page Load:
   → Static HTML served from Netlify CDN (fast, SEO-friendly)
   → Products rendered server-side or fetched via API
 
-Alpine.js Loads:
+Svelte Loads:
   → Adds interactivity (cart, filters, animations)
   → No page refreshes needed
 
@@ -78,8 +78,8 @@ Checkout Flow:
   <meta property="og:description" content="Premium handcrafted granola">
   <meta property="og:image" content="https://littlebitta.com/images/og-image.jpg">
 
-  <!-- Alpine.js -->
-  <script src="//unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <!-- Svelte -->
+  <script type="module" src="/storefront.js"></script>
 
   <!-- Styles -->
   <link rel="stylesheet" href="/styles.css">
@@ -268,7 +268,7 @@ Checkout Flow:
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout - Little Bitta Granola</title>
-  <script src="//unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script type="module" src="/checkout.js"></script>
   <script src="https://web.squarecdn.com/v1/square.js"></script>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -559,7 +559,7 @@ export default async (req: Request) => {
 
 ### Performance
 - Static HTML served from CDN (fast first load)
-- Minimal JavaScript (Alpine.js is ~15KB)
+- Minimal JavaScript (Svelte compiles to efficient vanilla JS)
 - Image optimization (use Cloudinary or imgix)
 - HTTP/2 and modern compression (automatic with Netlify)
 
