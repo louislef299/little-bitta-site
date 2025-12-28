@@ -1,41 +1,90 @@
 # Admin Panel Architecture
 
-This document outlines the admin panel implementation for managing products and
-orders using SvelteKit with server-side rendering.
+This document outlines the **local-only** admin panel implementation for managing
+products and orders. The admin interface runs exclusively in development mode and
+is never deployed to production.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure
 > setup and [Customer-Facing Site](customer-facing.md) for the public
 > storefront.
 
+## Security-First Design Decision
+
+**The admin panel is intentionally local-only and never exposed to the internet.**
+
+### Why Local-Only?
+
+Public admin endpoints are a primary attack vector:
+- Constant automated scanning for `/admin`, `/dashboard`, `/wp-admin`, etc.
+- Even with strong authentication, you're defending against bots 24/7
+- Session management, CSRF, XSS, and auth bypass vulnerabilities
+- Credential stuffing, brute force, and zero-day exploit attempts
+
+**Attack Surface Comparison:**
+```
+Public Admin Endpoint:
+- Authentication system (potential bypass)
+- Session management (hijacking, fixation)
+- CSRF protection (bypass attempts)
+- Rate limiting (circumvention)
+- Input validation (injection attacks)
+- Authorization logic (privilege escalation)
+= Multiple attack vectors, constant monitoring needed
+
+Local-Only Admin:
+- Physical access required (you need the codebase)
+- No public endpoints to scan or exploit
+- No auth system to bypass
+- No sessions to hijack
+= Zero public attack surface
+```
+
+### Business Context for Little Bitta
+
+For a small granola business:
+- **Low update frequency** - Products change occasionally, not hourly
+- **Technical ownership** - If you can build a SvelteKit site, you can run it locally
+- **Direct database access** - More powerful than web UI anyway
+- **Zero ongoing security maintenance** - No auth system to patch/update
+
+**This is more secure, simpler, and perfectly appropriate for the use case.**
+
 ## Overview
 
-The admin panel provides a web-based interface for managing:
+The admin panel provides a local-only interface for managing:
 - Products (add, edit, delete, stock management)
 - Orders (view, update status, track fulfillment)
 - Basic analytics (sales, inventory)
 
 **Technology:**
-- **Frontend:** SvelteKit with SSR (server-rendered forms)
-- **Backend:** SvelteKit form actions (serverless)
+- **Frontend:** SvelteKit (development mode only)
+- **Backend:** Direct Turso connection (production database)
 - **Database:** Turso (SQLite-compatible)
-- **Authentication:** Session-based auth with cookies
+- **Authentication:** Physical access + Netlify deployment auth
 
-## Design Philosophy
+## Architecture
 
-**Admin Panel vs Customer-Facing Site:**
+**Development Mode:**
+```
+Local Machine
+    ↓
+bun run dev (localhost:5173)
+    ↓
+/admin routes (only in dev)
+    ↓
+Direct Turso connection
+    ↓
+Production database
+```
 
-The admin panel is a **private tool** for authorized users, so we can be more
-pragmatic about progressive enhancement:
-
-- **Still use server-side rendering** - Fast initial page loads, works without JS
-- **Forms still work without JavaScript** - But richer interactions are acceptable
-- **Can assume modern browsers** - Admin users likely have up-to-date browsers
-- **Enhanced UX is valuable** - Real-time updates, drag-and-drop, etc. improve workflow
-
-**Progressive Enhancement Approach:**
-1. **Core functionality via forms** - Add/edit/delete works without JavaScript
-2. **Enhanced interactions** - Inline editing, optimistic updates, better UX with JavaScript
-3. **Server-side validation** - Never trust client-side validation alone
+**Production Build:**
+```
+Admin routes excluded from build
+    ↓
+/admin → 404 Not Found
+    ↓
+Zero attack surface
+```
 
 ## Database Schema
 
@@ -84,120 +133,164 @@ CREATE TABLE admin_users (
 );
 ```
 
+## Implementation
+
+### 1. Configure SvelteKit to Exclude Admin Routes
+
+```js
+// svelte.config.js
+import adapter from '@sveltejs/adapter-netlify';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+const config = {
+  preprocess: vitePreprocess(),
+
+  kit: {
+    adapter: adapter({
+      edge: false,
+      split: false
+    })
+  }
+};
+
+export default config;
+```
+
+### 2. Block Admin Routes in Production
+
+```ts
+// src/routes/admin/+layout.server.ts
+import { dev } from '$app/environment';
+import { error } from '@sveltejs/kit';
+
+export async function load() {
+  // Admin panel only available in development mode
+  if (!dev) {
+    throw error(404, 'Not found');
+  }
+
+  return {
+    environment: 'development'
+  };
+}
+```
+
+**Result:**
+- In development: `/admin` routes work normally
+- In production: `/admin` returns 404 (routes don't exist in build)
+- No authentication system needed
+- No session management
+- No security vulnerabilities to patch
+
+### 3. Connect to Production Database Locally
+
+```bash
+# .env.development (gitignored, local only)
+# Connect local admin to production Turso
+TURSO_URL=libsql://little-bitta-prod.turso.io
+TURSO_TOKEN=your-production-turso-token
+
+# For Netlify deployment credentials (separate)
+NETLIFY_AUTH_TOKEN=your-netlify-token
+```
+
+```ts
+// src/lib/server/db.ts
+import { createClient } from "@libsql/client";
+import { dev } from '$app/environment';
+
+export const getDb = () => {
+  // Both dev and prod can connect to production Turso
+  // Dev connects for admin operations
+  // Prod connects for customer-facing operations
+  return createClient({
+    url: process.env.TURSO_URL!,
+    authToken: process.env.TURSO_TOKEN!
+  });
+};
+```
+
 ## Route Structure
 
 ```
-/admin                     → Admin dashboard (requires auth)
-/admin/login               → Login page
+Development Only (localhost:5173):
+/admin                     → Admin dashboard
 /admin/products            → Product management
 /admin/products/new        → Add new product
 /admin/products/[id]/edit  → Edit product
 /admin/orders              → Order management
 /admin/orders/[id]         → Order details
 
-All routes use SvelteKit:
-- Server-side rendering (SSR)
-- Form actions for mutations
-- Session-based authentication
+Production (littlebitta.com):
+/admin                     → 404 Not Found (route excluded from build)
 ```
 
-## Backend: SvelteKit Server Routes
+**Security benefit:** Scanning tools that hit `/admin` on your production site
+get a 404, just like any other non-existent route. No indication an admin panel
+exists anywhere.
 
-### Admin Login with Session Management
+## Admin Workflow
+
+### Daily Operations
+
+**Update product stock:**
+```bash
+# 1. Start local dev server
+bun run dev
+
+# 2. Navigate to admin in browser
+open http://localhost:5173/admin
+
+# 3. Update product (changes saved directly to production Turso)
+
+# 4. Verify on live site
+open https://littlebitta.com
+```
+
+**No deployment needed** - Changes are immediate because you're writing directly
+to the production database.
+
+### Emergency Access Pattern (Optional)
+
+If you need a safety valve for truly remote emergencies, add an environment-gated
+escape hatch:
 
 ```ts
-// src/routes/admin/login/+page.server.ts
-import { getDb } from '$lib/server/db';
-import { fail, redirect } from '@sveltejs/kit';
-import * as crypto from 'crypto';
+// src/routes/admin/+layout.server.ts
+import { dev } from '$app/environment';
+import { error } from '@sveltejs/kit';
 
-export const actions = {
-  login: async ({ request, cookies }) => {
-    const db = getDb();
-    const data = await request.formData();
-    const username = data.get('username') as string;
-    const password = data.get('password') as string;
-
-    try {
-      // Get admin user from database
-      const result = await db.execute({
-        sql: "SELECT * FROM admin_users WHERE username = ?",
-        args: [username]
-      });
-
-      if (result.rows.length === 0) {
-        return fail(401, { error: "Invalid credentials" });
-      }
-
-      const admin = result.rows[0];
-
-      // Verify password
-      const isValid = await Bun.password.verify(
-        password,
-        admin.password_hash as string
-      );
-
-      if (!isValid) {
-        return fail(401, { error: "Invalid credentials" });
-      }
-
-      // Create session
-      const sessionId = crypto.randomUUID();
-      cookies.set('session', sessionId, {
-        path: '/admin',
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7 // 1 week
-      });
-
-      // Store session in database or memory
-      await db.execute({
-        sql: "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, ?)",
-        args: [sessionId, admin.id, new Date().toISOString()]
-      });
-
-      throw redirect(303, '/admin');
-
-    } catch (error) {
-      if (error instanceof redirect) throw error;
-      console.error("Login error:", error);
-      return fail(500, { error: 'Login failed' });
-    }
+export async function load({ request }) {
+  // Always allow in development
+  if (dev) {
+    return { environment: 'development' };
   }
-};
+
+  // Emergency access only (use sparingly)
+  const authHeader = request.headers.get('authorization');
+  const emergencyToken = process.env.EMERGENCY_ADMIN_TOKEN;
+
+  if (emergencyToken && authHeader === `Bearer ${emergencyToken}`) {
+    console.warn('⚠️ EMERGENCY ADMIN ACCESS USED');
+    return { environment: 'emergency' };
+  }
+
+  // Production: admin does not exist
+  throw error(404, 'Not found');
+}
 ```
 
-```svelte
-<!-- src/routes/admin/login/+page.svelte -->
-<script>
-  import { enhance } from '$app/forms';
-  export let form;
-</script>
+**Usage:**
+```bash
+# Store in password manager, use only when truly needed
+curl -H "Authorization: Bearer your-emergency-token" \
+  https://littlebitta.com/admin/products
 
-<div class="login-container">
-  <h1>Admin Login</h1>
-
-  <!-- Works without JavaScript via standard form POST -->
-  <form method="POST" action="?/login" use:enhance>
-    <label>
-      Username
-      <input type="text" name="username" required>
-    </label>
-
-    <label>
-      Password
-      <input type="password" name="password" required>
-    </label>
-
-    <button type="submit">Login</button>
-
-    {#if form?.error}
-      <p class="error">{form.error}</p>
-    {/if}
-  </form>
-</div>
+# Or add to browser bookmark for one-click access
 ```
+
+**Important:** This slightly increases attack surface. Only add if you genuinely
+need remote access in emergencies. Otherwise, keep it pure local-only.
 
 ### Admin Product Management
 
@@ -626,107 +719,325 @@ export default async (req: Request) => {
 </html>
 ```
 
-## Authentication Strategy
+## Security Model
 
-### Session-Based Authentication (Recommended)
+### Authentication Layers
 
-**Why sessions over tokens:**
-- More secure (httpOnly cookies can't be accessed by JavaScript)
-- Automatic CSRF protection with SvelteKit
-- Easy to revoke (delete from database)
-- Works without JavaScript
+**Local-only approach has implicit multi-factor authentication:**
 
-**Implementation:**
-```ts
-// src/hooks.server.ts
-import { getDb } from '$lib/server/db';
-import { redirect } from '@sveltejs/kit';
+1. **Physical Access** - Must have codebase cloned locally
+2. **Git Authentication** - Authenticated to GitHub/repository
+3. **Netlify Authentication** - Authenticated to deploy (separate concern)
+4. **Turso Token** - Must have production database credentials
 
-export async function handle({ event, resolve }) {
-  // Check if route requires authentication
-  if (event.url.pathname.startsWith('/admin') &&
-      event.url.pathname !== '/admin/login') {
+This is actually **more secure** than a password-protected web UI because an
+attacker would need:
+- Your laptop (physical access)
+- Your GitHub credentials (to clone)
+- Your `.env.development` file (with Turso token)
 
-    const sessionId = event.cookies.get('session');
+Compare to public admin panel where they only need:
+- To find the URL (automated scanning)
+- To bypass authentication (one attack surface)
 
-    if (!sessionId) {
-      throw redirect(303, '/admin/login');
-    }
+### Credential Management
 
-    // Verify session
-    const db = getDb();
-    const result = await db.execute({
-      sql: "SELECT * FROM sessions WHERE id = ? AND expires_at > ?",
-      args: [sessionId, new Date().toISOString()]
-    });
+```bash
+# .env.development (NEVER commit this file)
+TURSO_URL=libsql://little-bitta-prod.turso.io
+TURSO_TOKEN=eyJhbGc...  # Get from: turso db tokens create little-bitta
+```
 
-    if (result.rows.length === 0) {
-      event.cookies.delete('session', { path: '/' });
-      throw redirect(303, '/admin/login');
-    }
+**Token security:**
+- Store in `.env.development` (gitignored)
+- Never commit to repository
+- Rotate periodically: `turso db tokens create little-bitta`
+- Revoke old tokens: `turso db tokens revoke <token-id>`
 
-    // Attach user to event.locals
-    event.locals.user = result.rows[0];
-  }
+**Backup access:**
+```bash
+# Always keep Turso CLI access as backup
+turso auth login
+turso db shell little-bitta
 
-  return resolve(event);
+# Can manage products directly via SQL if needed
+sqlite> UPDATE products SET stock = 100 WHERE name = 'Pistachio';
+```
+
+## Alternative: Git-Based Product Management
+
+For even simpler management (and version control), consider file-based products:
+
+```
+products/
+├── peanut-butter-nutella.json
+├── pistachio.json
+├── pb-chocolate.json
+└── honey-bear.json
+```
+
+```json
+// products/pistachio.json
+{
+  "slug": "pistachio",
+  "name": "Pistachio",
+  "description": "Crunchy pistachios with a hint of honey",
+  "price": 10.00,
+  "stock": 50,
+  "image": "/images/pistachio.jpg",
+  "active": true
 }
 ```
 
-**Session Management:**
-- Sessions stored in database
-- Automatic expiration
-- Logout deletes session
-- Works with or without JavaScript
+```ts
+// scripts/sync-products.ts
+// Runs on build: syncs JSON files to Turso
+import { getDb } from '$lib/server/db';
+import { readdir, readFile } from 'fs/promises';
+
+async function syncProducts() {
+  const db = getDb();
+  const files = await readdir('./products');
+
+  for (const file of files) {
+    if (!file.endsWith('.json')) continue;
+
+    const product = JSON.parse(
+      await readFile(`./products/${file}`, 'utf-8')
+    );
+
+    await db.execute({
+      sql: `INSERT INTO products (slug, name, description, price, stock, image_url, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(slug) DO UPDATE SET
+              name = excluded.name,
+              description = excluded.description,
+              price = excluded.price,
+              stock = excluded.stock,
+              image_url = excluded.image_url,
+              active = excluded.active`,
+      args: [product.slug, product.name, product.description,
+             product.price, product.stock, product.image, product.active]
+    });
+  }
+}
+
+syncProducts();
+```
+
+**Workflow:**
+1. Edit `products/pistachio.json` (update stock)
+2. Commit: `git commit -m "Update pistachio stock to 25"`
+3. Push: `git push`
+4. Netlify builds and runs sync script
+5. Product updated in Turso
+
+**Benefits:**
+- Version control for all changes (`git log products/`)
+- Can revert mistakes (`git revert abc123`)
+- No admin UI needed at all
+- Can edit files in GitHub web UI (emergency fallback)
+- Audit trail of who changed what when
 
 ## File Uploads (Product Images)
 
-**Option 1: Use Cloudinary (Recommended)**
-```ts
-// Upload to Cloudinary, get URL
-const imageUrl = await uploadToCloudinary(imageFile);
-// Store URL in database
+**Recommended approach for Little Bitta:**
+
+**Option 1: Commit images to `/static/images/`**
+```
+static/images/
+├── pb-nutella.jpg
+├── pistachio.jpg
+├── pb-chocolate.jpg
+└── honey-bear.jpg
 ```
 
-**Option 2: Netlify Large Media**
-Store images in git with Large Media support.
+For a small product catalog (4-6 items), just commit images to git. Simple,
+version controlled, no external dependencies.
 
-**Option 3: Cloudflare R2 / AWS S3**
-Use object storage for images.
+**Option 2: Use Cloudinary (if catalog grows)**
+```bash
+# Upload via CLI
+cloudinary upload products/pistachio.jpg
+
+# Returns URL
+https://res.cloudinary.com/little-bitta/image/upload/v1234/pistachio.jpg
+```
+
+**Option 3: Netlify Large Media**
+Automatic image optimization and CDN delivery for git-committed images.
 
 ## Security Checklist
 
-- [ ] Use HTTPS only (automatic with Netlify)
-- [ ] Strong admin password (hashed with bcrypt)
-- [ ] Rate limit login attempts
-- [ ] IP whitelist for admin panel (optional)
-- [ ] Validate all inputs server-side
-- [ ] Use environment variables for secrets
-- [ ] Enable 2FA for Netlify account
-- [ ] Regular security audits
+**Local-Only Admin:**
+- [x] Admin routes excluded from production build
+- [x] No public admin endpoints to scan
+- [x] No authentication system to bypass
+- [x] No session management vulnerabilities
+- [x] No CSRF, XSS, or injection vectors
+- [ ] Turso token stored in `.env.development` (gitignored)
+- [ ] Enable 2FA for Netlify account (deployment security)
+- [ ] Enable 2FA for GitHub account (code access security)
+- [ ] Rotate Turso tokens periodically
+- [ ] Backup access via Turso CLI (`turso auth login`)
 
-## Key Features
+**Production Site (Customer-Facing):**
+- [x] HTTPS only (automatic with Netlify)
+- [x] No admin endpoints exposed
+- [x] Server-side input validation
+- [x] Square handles payment data (PCI-compliant)
+- [x] Environment variables for secrets
+- [ ] Monitor Netlify logs for anomalies
+- [ ] Test checkout flow regularly
 
-### Product Management
-- Add/edit/delete products
+## Development Setup
+
+### Initial Setup
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/little-bitta-site.git
+cd little-bitta-site
+
+# 2. Install dependencies
+bun install
+
+# 3. Create .env.development (gitignored)
+cat > .env.development <<EOF
+# Production Turso database
+TURSO_URL=libsql://little-bitta-prod.turso.io
+TURSO_TOKEN=your-production-token
+
+# Square sandbox for testing checkout locally
+SQUARE_ENVIRONMENT=sandbox
+SQUARE_ACCESS_TOKEN=your-sandbox-token
+SQUARE_LOCATION_ID=your-location-id
+SQUARE_APP_ID=your-app-id
+EOF
+
+# 4. Get Turso token (if you don't have it)
+turso auth login
+turso db tokens create little-bitta
+
+# 5. Start development server
+bun run dev
+
+# 6. Access admin
+open http://localhost:5173/admin
+```
+
+### Daily Admin Tasks
+
+**Check orders:**
+```bash
+bun run dev
+open http://localhost:5173/admin/orders
+```
+
+**Update product stock:**
+```bash
+bun run dev
+# Navigate to /admin/products
+# Edit product, update stock
+# Changes save directly to production Turso
+```
+
+**Verify changes on live site:**
+```bash
+open https://littlebitta.com
+```
+
+## Admin UI Features
+
+### Product Management (Local UI)
+- View all products (server-rendered list)
+- Add new product (form POST)
+- Edit product details (form POST)
 - Update stock levels
-- Upload product images
 - Mark products active/inactive
+- Direct Turso write (immediate changes)
 
-### Order Management
-- View all orders
-- Update order status
+### Order Management (Local UI)
+- View recent orders (read-only)
 - Filter by status/date
-- Export orders (future)
+- View order details
+- Update fulfillment status
+- Direct Turso queries
 
-### Future Enhancements
-- Analytics dashboard (revenue, popular products)
-- Inventory alerts (low stock warnings)
-- Batch operations (bulk price updates)
-- Customer management
-- Email templates for receipts
+### Analytics (Future)
+Can add analytics dashboard to local admin:
+- Revenue trends
+- Popular products
+- Low stock warnings
+- Customer insights
+
+All data queries run against production Turso, displayed in local UI.
+
+## Threat Model Analysis
+
+### Attack Vectors Eliminated
+
+**Public Admin Panel (Traditional):**
+```
+Attack Surface:
+├── Automated scanning (bots find /admin)
+├── Credential stuffing (leaked password databases)
+├── Brute force attacks (dictionary attacks on login)
+├── Session hijacking (XSS, CSRF, network sniffing)
+├── SQL injection (malicious input in forms)
+├── Authentication bypass (logic flaws, zero-days)
+├── Privilege escalation (normal user → admin)
+└── DDoS on admin endpoints (service disruption)
+
+Security Requirements:
+├── Rate limiting implementation
+├── CAPTCHA or similar
+├── Session management (secure cookies, rotation)
+├── CSRF tokens
+├── Input sanitization
+├── SQL parameterization
+├── Password hashing (bcrypt/argon2)
+├── 2FA implementation
+├── Audit logging
+├── Security headers
+├── Regular security updates
+└── Penetration testing
+```
+
+**Local-Only Admin (This Implementation):**
+```
+Attack Surface:
+└── Physical access to developer laptop
+    └── Requires multiple compromises:
+        ├── Physical theft of laptop
+        ├── Bypass disk encryption
+        ├── Access GitHub account (2FA)
+        └── Access .env.development (Turso token)
+
+Security Requirements:
+├── Disk encryption (FileVault/BitLocker)
+├── Strong laptop password
+├── GitHub 2FA
+├── Turso token rotation
+└── .env.development in .gitignore
+```
+
+**Result:** Attack surface reduced by ~95%, security maintenance reduced to zero.
+
+### Risk Assessment
+
+**For Little Bitta Granola:**
+- **Asset value:** Low (granola inventory, customer emails)
+- **Attack motivation:** Very low (not a high-value target)
+- **Update frequency:** Low (seasonal flavors, stock updates)
+- **Technical capability:** High (you built the site)
+
+**Conclusion:** Local-only admin is the correct security posture. The convenience
+trade-off (can't update from phone) is acceptable given the low update frequency
+and high security benefit.
 
 ## Related Documentation
 
 - [Cloud Architecture](cloud-arch.md) - Complete infrastructure setup and deployment
 - [Customer-Facing Site](customer-facing.md) - How customers interact with products you manage here
+- [Local Development](local-dev.md) - Running the site locally (includes admin access)

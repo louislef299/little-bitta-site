@@ -5,7 +5,7 @@ following resilient web design principles.
 
 ## Design Philosophy
 
-This project follows the principles of **Resilient Web Design**:
+This project follows the principles of [Resilient Web Design][]:
 
 1. **HTML Foundation** - Content is served as semantic HTML, accessible without
    JavaScript
@@ -63,3 +63,5 @@ Layer 3 (JavaScript): Interactivity, optimistic UI, transitions
 
 Remember: Fundamentally, a SvelteKit app is a machine for turning a Request into
 a Response. We render HTML on the server, then enhance it on the client.
+
+[Resilient Web Design]: https://resilientwebdesign.com

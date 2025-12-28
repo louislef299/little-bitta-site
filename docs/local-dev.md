@@ -72,10 +72,10 @@ little-bitta-site/
 
 ```bash
 # Install Netlify CLI globally (optional, for deployment)
-npm install -g netlify-cli
+bun install -g netlify-cli
 
 # Install project dependencies
-npm install
+bun install
 
 # Key dependencies:
 # - @sveltejs/kit: SvelteKit framework
@@ -132,14 +132,14 @@ export default config;
 ```toml
 # netlify.toml
 [build]
-  command = "npm run build"
+  command = "bun run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "20"
 
 [dev]
-  command = "npm run dev"
+  command = "bun run dev"
   targetPort = 5173
   port = 8888
   autoLaunch = false
@@ -167,7 +167,7 @@ export default config;
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "db:seed": "sqlite3 local/local.db < local/seed.sql",
-    "db:reset": "rm -f local/local.db && npm run db:seed",
+    "db:reset": "rm -f local/local.db && bun run db:seed",
     "netlify:dev": "netlify dev",
     "deploy": "netlify deploy --prod"
   }
@@ -272,7 +272,7 @@ INSERT INTO admin_users (username, password_hash) VALUES
 mkdir -p local
 
 # Create and seed database
-npm run db:seed
+bun run db:seed
 
 # Verify it worked
 sqlite3 local/local.db "SELECT * FROM products;"
@@ -359,7 +359,7 @@ export const getSquareClient = () => {
 
 ```bash
 # Start Vite development server
-npm run dev
+bun run dev
 
 # Server starts at: http://localhost:5173
 ```
@@ -458,7 +458,7 @@ curl http://localhost:8888/.netlify/functions/admin-products \
 cat netlify.toml | grep functions
 
 # Ensure TypeScript is installed
-npm install -D typescript
+bun install -D typescript
 
 # Restart dev server
 netlify dev
@@ -474,7 +474,7 @@ netlify dev
 mkdir -p local
 
 # Recreate database
-npm run db:reset
+bun run db:reset
 
 # Check file exists
 ls -la local/local.db
@@ -497,7 +497,7 @@ ls -la local/local.db
 **Fix:**
 ```bash
 # Install missing types
-npm install -D @types/node @netlify/functions
+bun install -D @types/node @netlify/functions
 
 # Verify tsconfig.json exists
 cat tsconfig.json
@@ -545,7 +545,7 @@ SELECT * FROM orders;
 
 ```bash
 # Delete and recreate
-npm run db:reset
+bun run db:reset
 
 # Or manually
 rm local/local.db
@@ -636,9 +636,9 @@ Once local development is working:
 
 | Command | Purpose |
 |---------|---------|
-| `netlify dev` | Start local dev server |
-| `npm run db:seed` | Initialize local database |
-| `npm run db:reset` | Reset database to seed data |
+| `bun run dev` | Start local dev server |
+| `bun run db:seed` | Initialize local database |
+| `bun run db:reset` | Reset database to seed data |
 | `sqlite3 local/local.db` | Open database shell |
 | `netlify deploy` | Deploy to preview |
 | `netlify deploy --prod` | Deploy to production |

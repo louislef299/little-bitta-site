@@ -623,7 +623,7 @@ export const actions = {
 ```toml
 # netlify.toml
 [build]
-  command = "npm run build"
+  command = "bun run build"
   publish = "build"
   functions = "netlify/functions"
 
