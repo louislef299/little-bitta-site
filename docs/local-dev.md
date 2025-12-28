@@ -1,49 +1,69 @@
 # Local Development Guide
 
-This document covers setting up and running the Little Bitta Granola site locally using Netlify CLI.
+This document covers setting up and running the Little Bitta Granola site locally with SvelteKit and progressive enhancement.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for production deployment, [Customer-Facing Site](customer-facing.md) for frontend implementation, and [Admin Panel](admin-ui.md) for backend management.
 
 ## Overview
 
 **Local development stack:**
-- **Netlify CLI** - Runs functions and serves static site locally
+- **SvelteKit** - SSR framework with progressive enhancement
+- **Vite** - Fast development server with HMR
+- **Netlify CLI** - Simulates Netlify deployment locally
 - **SQLite** - Local database (instead of Turso)
 - **Square Sandbox** - Test payments without real money
-- **TypeScript** - Type-safe function development
-- **Svelte** - Frontend interactivity with reactive components
+- **TypeScript** - Type-safe development
+
+**Design Philosophy:**
+- Develop with progressive enhancement from the start
+- Test without JavaScript to ensure resilience
+- Server-render all pages for immediate content visibility
 
 ## Project Structure
 
 ```
 little-bitta-site/
-├── public/                    # Static site (HTML, CSS, images)
-│   ├── index.html
-│   ├── checkout.html
-│   ├── admin.html
-│   └── styles.css
+├── src/
+│   ├── routes/                # SvelteKit routes (file-based routing)
+│   │   ├── +layout.svelte           # Root layout
+│   │   ├── +page.svelte             # Homepage
+│   │   ├── +page.server.ts          # Homepage server logic
+│   │   ├── products/
+│   │   │   └── [slug]/
+│   │   │       ├── +page.svelte     # Product detail
+│   │   │       └── +page.server.ts  # Load product data
+│   │   ├── cart/
+│   │   │   ├── +page.svelte         # Cart page
+│   │   │   └── +page.server.ts      # Cart actions (add/remove)
+│   │   ├── checkout/
+│   │   │   ├── +page.svelte         # Checkout form
+│   │   │   └── +page.server.ts      # Payment processing
+│   │   └── admin/
+│   │       ├── +page.svelte         # Admin dashboard
+│   │       └── +page.server.ts      # Admin actions
+│   ├── lib/
+│   │   ├── server/              # Server-only code
+│   │   │   ├── db.ts           # Database client
+│   │   │   └── square.ts       # Square client
+│   │   └── components/         # Reusable Svelte components
+│   └── app.html                # HTML template
 │
-├── functions/                 # Serverless functions (TypeScript)
-│   ├── products.ts
-│   ├── checkout.ts
-│   ├── admin-login.ts
-│   ├── admin-products.ts
-│   └── admin-orders.ts
-│
-├── src/                       # Shared code/utilities
-│   ├── types.ts              # TypeScript interfaces
-│   ├── db.ts                 # Database connection helper
-│   └── square.ts             # Square client helper
+├── static/                    # Static assets
+│   ├── images/
+│   ├── fonts/
+│   └── favicon.png
 │
 ├── local/                     # Local development only
 │   ├── seed.sql              # Sample product data
 │   └── local.db              # SQLite database (gitignored)
 │
-├── .env.example               # Environment variable template
-├── .env                       # Actual secrets (gitignored)
-├── netlify.toml               # Netlify configuration
-├── package.json               # Dependencies
-└── tsconfig.json              # TypeScript configuration
+├── .env.example              # Environment variable template
+├── .env                      # Actual secrets (gitignored)
+├── svelte.config.js          # SvelteKit configuration
+├── vite.config.js            # Vite configuration
+├── netlify.toml              # Netlify configuration
+├── package.json              # Dependencies
+└── tsconfig.json             # TypeScript configuration
 ```
 
 ## Initial Setup
@@ -51,17 +71,18 @@ little-bitta-site/
 ### 1. Install Dependencies
 
 ```bash
-# Install Netlify CLI globally
+# Install Netlify CLI globally (optional, for deployment)
 npm install -g netlify-cli
 
-# Initialize project
-npm init -y
+# Install project dependencies
+npm install
 
-# Install dependencies
-npm install @libsql/client square
-
-# Install dev dependencies
-npm install -D typescript @types/node @netlify/functions
+# Key dependencies:
+# - @sveltejs/kit: SvelteKit framework
+# - @sveltejs/adapter-netlify: Netlify deployment adapter
+# - @libsql/client: Turso database client (SQLite-compatible)
+# - square: Square payment processing
+# - vite: Development server
 ```
 
 ### 2. Configure TypeScript
@@ -87,28 +108,45 @@ npm install -D typescript @types/node @netlify/functions
 }
 ```
 
-### 3. Configure Netlify
+### 3. Configure SvelteKit
+
+```js
+// svelte.config.js
+import adapter from '@sveltejs/adapter-netlify';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+const config = {
+  preprocess: vitePreprocess(),
+
+  kit: {
+    adapter: adapter({
+      edge: false,
+      split: false
+    })
+  }
+};
+
+export default config;
+```
 
 ```toml
 # netlify.toml
 [build]
-  publish = "public"
-  functions = "functions"
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [dev]
-  command = "echo 'Development server running'"
+  command = "npm run dev"
+  targetPort = 5173
   port = 8888
-  targetPort = 8888
   autoLaunch = false
-  framework = "#static"
-
-[functions]
-  directory = "functions"
-  node_bundler = "esbuild"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/.netlify/functions/render"
   status = 200
 
 [[headers]]
@@ -117,13 +155,6 @@ npm install -D typescript @types/node @netlify/functions
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
 ```
 
 ### 4. Update package.json Scripts
@@ -131,11 +162,14 @@ npm install -D typescript @types/node @netlify/functions
 ```json
 {
   "scripts": {
-    "dev": "netlify dev",
-    "build": "netlify build",
-    "deploy": "netlify deploy --prod",
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "db:seed": "sqlite3 local/local.db < local/seed.sql",
-    "db:reset": "rm -f local/local.db && npm run db:seed"
+    "db:reset": "rm -f local/local.db && npm run db:seed",
+    "netlify:dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
   }
 }
 ```
@@ -247,26 +281,27 @@ sqlite3 local/local.db "SELECT * FROM products;"
 ### 3. Database Helper Module
 
 ```ts
-// src/db.ts
+// src/lib/server/db.ts
 import { createClient } from "@libsql/client";
+import { dev } from '$app/environment';
 
 export const getDb = () => {
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
+  if (dev) {
+    // Development: Use local SQLite
+    return createClient({
+      url: `file:${process.env.DB_PATH || './local/local.db'}`
+    });
+  } else {
     // Production: Use Turso
     return createClient({
       url: process.env.TURSO_URL!,
       authToken: process.env.TURSO_TOKEN!
     });
-  } else {
-    // Development: Use local SQLite
-    return createClient({
-      url: `file:${process.env.DB_PATH || './local/local.db'}`
-    });
   }
 };
 ```
+
+**Note:** Place database helpers in `src/lib/server/` to ensure they only run on the server (SvelteKit convention).
 
 ## Square Sandbox Setup
 
@@ -323,33 +358,50 @@ export const getSquareClient = () => {
 ### Start Development Server
 
 ```bash
-# Start Netlify dev server
-netlify dev
-
-# Or use npm script
+# Start Vite development server
 npm run dev
+
+# Server starts at: http://localhost:5173
 ```
 
-**Server starts at:** `http://localhost:8888`
+**What happens:**
+- SvelteKit starts with HMR (Hot Module Replacement)
+- Pages are server-rendered on each request
+- Changes reflect instantly (no page refresh needed)
+- All routes available immediately
 
-**Functions available at:**
-- `http://localhost:8888/.netlify/functions/products`
-- `http://localhost:8888/.netlify/functions/admin-login`
-- etc.
+**Available routes:**
+- `http://localhost:5173/` - Homepage (SSR)
+- `http://localhost:5173/cart` - Cart page (SSR)
+- `http://localhost:5173/checkout` - Checkout (SSR)
+- `http://localhost:5173/admin` - Admin panel (SSR)
 
 ### Development Workflow
 
-1. **Edit files** - Changes to HTML/CSS reflect immediately
-2. **Functions auto-reload** - TypeScript functions recompile on save
-3. **View logs** - Function logs appear in terminal
-4. **Test locally** - Use local SQLite + Square Sandbox
+1. **Edit Svelte files** - Hot Module Replacement updates instantly
+2. **Edit server code** - Pages re-render on next request
+3. **View server logs** - Server actions log to terminal
+4. **Test without JS** - Disable JavaScript in browser to test resilience
+5. **Test forms** - Forms work via POST even without JavaScript
 
-### Hot Reload
+### Testing Progressive Enhancement
 
-Netlify CLI automatically:
-- Reloads static files (HTML, CSS) on change
-- Recompiles TypeScript functions on save
-- Injects updated code without full restart
+**Verify your site works without JavaScript:**
+
+1. Open browser DevTools
+2. Disable JavaScript (Chrome: DevTools > Settings > Debugger > Disable JavaScript)
+3. Reload page
+4. Test core functionality:
+   - View products ✓
+   - Add to cart (form POST) ✓
+   - View cart ✓
+   - Navigate pages ✓
+
+**With JavaScript enabled:**
+- Smooth page transitions
+- Optimistic UI updates
+- No full page reloads
+- Enhanced animations
 
 ## Testing the Site
 

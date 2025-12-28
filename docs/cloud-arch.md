@@ -1,57 +1,96 @@
 # Cloud Architecture Guide
 
 This document covers the cloud-native architecture for Little Bitta Granola
-e-commerce site using Netlify Functions + Turso.
+e-commerce site using SvelteKit, Netlify, and Turso with progressive enhancement.
 
 > **See also:** [Customer-Facing Site](customer-facing.md) for storefront
 > implementation and [Admin Panel](admin-ui.md) for product management
 > interface.
 
+## Design Philosophy
+
+This architecture follows **Resilient Web Design** principles:
+
+1. **HTML-first delivery** - Server renders semantic HTML for all pages
+2. **Progressive enhancement** - JavaScript enhances but isn't required
+3. **Graceful degradation** - Core features work without JavaScript
+4. **Performance** - Fast initial page load via SSR/SSG
+
 ## Architecture Decision
 
 **Chosen Stack:**
-- **Frontend:** Netlify (static hosting + CDN)
-- **Backend:** Netlify Functions (serverless)
+- **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML)
+- **Hosting:** Netlify (static + edge functions, CDN)
+- **Backend:** SvelteKit endpoints + Netlify Functions (serverless)
 - **Database:** Turso (SQLite-compatible, cloud-hosted)
 - **Payments:** Square
-- **Admin:** Netlify Functions with auth
+- **Admin:** SvelteKit with authentication
 
 **Why This Stack:**
-1. Already familiar with Netlify (littlebitta.com is hosted there)
-2. Free tier generous enough for launch
-3. Zero server management
-4. Turso is SQLite-compatible (minimal code changes)
-5. Automatic SSL, CDN, DDoS protection
-6. Clear growth path
+1. SvelteKit enables progressive enhancement out of the box
+2. Server-side rendering for fast, resilient page loads
+3. Already familiar with Netlify (littlebitta.com is hosted there)
+4. Free tier generous enough for launch
+5. Zero server management
+6. Turso is SQLite-compatible (minimal code changes)
+7. Automatic SSL, CDN, DDoS protection
+8. Clear growth path
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Netlify Edge Network                 │
-│  (CDN, SSL, DDoS Protection - Automatic & Free)         │
-└───────────────┬─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    Netlify Edge Network                     │
+│         (CDN, SSL, DDoS Protection - Automatic)             │
+└───────────────┬─────────────────────────────────────────────┘
                 │
-    ┌───────────┴──────────┐
-    │                      │
-    ▼                      ▼
-┌──────────┐        ┌─────────────┐
-│  Static  │        │  Netlify    │
-│  Assets  │        │  Functions  │
-│          │        │  (Backend)  │
-│ - HTML   │        │             │
-│ - CSS    │        │ - API       │
-│ - Svelte │        │ - Admin     │
-└──────────┘        └──────┬──────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-              ▼            ▼            ▼
-         ┌────────┐   ┌───────┐   ┌────────┐
-         │ Turso  │   │Square │   │ Email  │
-         │  (DB)  │   │  Pay  │   │Service │
-         └────────┘   └───────┘   └────────┘
+                ▼
+┌───────────────────────────────────────┐
+│         SvelteKit Application         │
+│                                       │
+│  SSR/SSG: Renders HTML on server      │
+│  Hydration: Adds interactivity        │
+│  Progressive Enhancement: Forms work  │
+│  without JS, enhanced with JS         │
+└───────────────┬───────────────────────┘
+                │
+    ┌───────────┼───────────┐
+    │           │           │
+    ▼           ▼           ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│ Static   │ │ SvelteKit│ │ Netlify  │
+│ Assets   │ │ Endpoints│ │ Functions│
+│          │ │          │ │          │
+│ - Images │ │ - Forms  │ │ - Legacy │
+│ - CSS    │ │ - API    │ │ - Webhooks│
+│ - Fonts  │ │ - Auth   │ │          │
+└──────────┘ └────┬─────┘ └────┬─────┘
+                  │            │
+       ┌──────────┼────────────┼─────────┐
+       │          │            │         │
+       ▼          ▼            ▼         ▼
+  ┌────────┐ ┌───────┐   ┌────────┐ ┌──────┐
+  │ Turso  │ │Square │   │ Email  │ │ Logs │
+  │  (DB)  │ │  Pay  │   │Service │ │      │
+  └────────┘ └───────┘   └────────┘ └──────┘
 ```
+
+## Rendering Strategy
+
+**Server-Side Rendering (SSR):**
+- All pages render HTML on Netlify's edge
+- Users see content immediately (no loading spinners)
+- SEO-friendly, accessible, resilient
+
+**Static Site Generation (SSG):**
+- Product pages pre-rendered at build time
+- Served as static HTML (ultra-fast)
+- Regenerate on product updates
+
+**Progressive Enhancement:**
+- HTML works without JavaScript (forms POST to endpoints)
+- CSS adds responsive design and visual polish
+- JavaScript enhances with animations, optimistic UI, client-side validation
 
 ## Turso Database Setup
 
@@ -160,193 +199,276 @@ const products = result.rows;
 
 **Key difference:** `db.execute()` is async and returns `{ rows, columns }`.
 
-## Netlify Functions Structure
+## Project Structure
 
 ```
 little-bitta-site/
-├── public/              # Static frontend
-│   ├── index.html
-│   ├── styles.css
-│   └── images/
+├── src/
+│   ├── routes/              # SvelteKit routes (SSR/SSG)
+│   │   ├── +page.svelte           # Homepage (SSR)
+│   │   ├── +page.server.ts        # Load products server-side
+│   │   ├── products/
+│   │   │   ├── +page.svelte       # Product list (SSG)
+│   │   │   └── [slug]/
+│   │   │       └── +page.svelte   # Product detail (SSG)
+│   │   ├── cart/
+│   │   │   ├── +page.svelte       # Cart page
+│   │   │   └── +page.server.ts    # Add/remove actions
+│   │   ├── checkout/
+│   │   │   ├── +page.svelte       # Checkout form
+│   │   │   └── +server.ts         # Process payment
+│   │   └── admin/
+│   │       ├── +page.svelte       # Admin dashboard
+│   │       └── +page.server.ts    # Admin actions
+│   ├── lib/
+│   │   ├── db.ts                  # Turso client
+│   │   ├── square.ts              # Square client
+│   │   └── components/            # Reusable components
+│   └── app.html                   # HTML template
+├── static/                  # Static assets
+│   ├── images/
+│   ├── fonts/
+│   └── favicon.png
 ├── netlify/
-│   └── functions/       # Backend API
-│       ├── products.ts       # GET /api/products
-│       ├── product.ts        # GET /api/product/:id
-│       ├── checkout.ts       # POST /api/checkout
-│       ├── admin-login.ts    # POST /api/admin/login
-│       ├── admin-products.ts # CRUD /api/admin/products
-│       └── admin-orders.ts   # GET /api/admin/orders
-├── netlify.toml         # Netlify config
+│   └── functions/           # Legacy/webhook functions
+├── svelte.config.js         # SvelteKit config
+├── netlify.toml             # Netlify config
 └── package.json
 ```
 
-### Example Function: Get Products
+### Example: Server-Side Product Loading
 
 ```ts
-// netlify/functions/products.ts
-import { createClient } from "@libsql/client";
+// src/routes/+page.server.ts
+import { getDb } from '$lib/db';
 
-const db = createClient({
-  url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
-});
+export async function load() {
+  const db = getDb();
 
-export default async (req: Request) => {
   try {
     const result = await db.execute(
-      "SELECT * FROM products WHERE active = 1"
+      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1"
     );
 
-    return new Response(JSON.stringify(result.rows), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60" // Cache for 1 min
-      }
-    });
+    // Return data that will be rendered as HTML
+    return {
+      products: result.rows
+    };
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Failed to fetch products" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
+    console.error('Failed to load products:', error);
+    return {
+      products: [],
+      error: 'Failed to load products'
+    };
   }
-};
+}
 ```
 
-### Example Function: Admin Products CRUD
+```svelte
+<!-- src/routes/+page.svelte -->
+<script>
+  export let data;
+</script>
+
+<h1>Our Granola</h1>
+
+<!-- This HTML is rendered on the server, visible immediately -->
+<div class="product-grid">
+  {#each data.products as product}
+    <article class="product-card">
+      <img src={product.image_url} alt={product.name}>
+      <h2>{product.name}</h2>
+      <p>{product.description}</p>
+      <p class="price">${product.price}</p>
+
+      <!-- Works without JavaScript: standard form POST -->
+      <form method="POST" action="/cart?/add">
+        <input type="hidden" name="productId" value={product.id}>
+        <button type="submit">Add to Cart</button>
+      </form>
+    </article>
+  {/each}
+</div>
+```
+
+### Example: Progressive Enhancement with Form Actions
 
 ```ts
-// netlify/functions/admin-products.ts
-import { createClient } from "@libsql/client";
+// src/routes/cart/+page.server.ts
+import { getDb } from '$lib/db';
+import { fail } from '@sveltejs/kit';
 
-const db = createClient({
-  url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
-});
+export const actions = {
+  // Add to cart action (works without JavaScript)
+  add: async ({ request, cookies }) => {
+    const data = await request.formData();
+    const productId = data.get('productId');
 
-// Simple auth check (expand with JWT in production)
-function isAuthenticated(req: Request): boolean {
-  const authHeader = req.headers.get("Authorization");
-  // Check session/JWT token here
-  return authHeader === `Bearer ${process.env.ADMIN_SECRET}`;
-}
+    // Get current cart from cookie
+    const cart = JSON.parse(cookies.get('cart') || '[]');
 
-export default async (req: Request) => {
-  if (!isAuthenticated(req)) {
-    return new Response("Unauthorized", { status: 401 });
+    // Add product to cart
+    cart.push({ productId, quantity: 1 });
+
+    // Save cart to cookie
+    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+
+    return { success: true };
+  },
+
+  // Remove from cart
+  remove: async ({ request, cookies }) => {
+    const data = await request.formData();
+    const index = Number(data.get('index'));
+
+    const cart = JSON.parse(cookies.get('cart') || '[]');
+    cart.splice(index, 1);
+    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+
+    return { success: true };
   }
-
-  const url = new URL(req.url);
-  const method = req.method;
-
-  // GET: List all products
-  if (method === "GET") {
-    const result = await db.execute("SELECT * FROM products");
-    return Response.json(result.rows);
-  }
-
-  // POST: Create new product
-  if (method === "POST") {
-    const product = await req.json();
-    await db.execute({
-      sql: "INSERT INTO products (name, description, price, image_url, stock) VALUES (?, ?, ?, ?, ?)",
-      args: [product.name, product.description, product.price, product.image_url, product.stock]
-    });
-    return Response.json({ success: true });
-  }
-
-  // PUT: Update product
-  if (method === "PUT") {
-    const product = await req.json();
-    await db.execute({
-      sql: "UPDATE products SET name = ?, description = ?, price = ?, image_url = ?, stock = ? WHERE id = ?",
-      args: [product.name, product.description, product.price, product.image_url, product.stock, product.id]
-    });
-    return Response.json({ success: true });
-  }
-
-  // DELETE: Remove product
-  if (method === "DELETE") {
-    const id = url.searchParams.get("id");
-    await db.execute({
-      sql: "UPDATE products SET active = 0 WHERE id = ?",
-      args: [id]
-    });
-    return Response.json({ success: true });
-  }
-
-  return new Response("Method not allowed", { status: 405 });
 };
+
+export async function load({ cookies }) {
+  const db = getDb();
+  const cartData = JSON.parse(cookies.get('cart') || '[]');
+
+  // Load full product details for cart items
+  const cart = await Promise.all(
+    cartData.map(async (item: any) => {
+      const result = await db.execute({
+        sql: "SELECT * FROM products WHERE id = ?",
+        args: [item.productId]
+      });
+      return { ...result.rows[0], quantity: item.quantity };
+    })
+  );
+
+  return { cart };
+}
+```
+
+```svelte
+<!-- src/routes/cart/+page.svelte -->
+<script>
+  import { enhance } from '$app/forms';
+  export let data;
+  export let form;
+</script>
+
+<h1>Shopping Cart</h1>
+
+{#if data.cart.length === 0}
+  <p>Your cart is empty</p>
+{:else}
+  {#each data.cart as item, i}
+    <div class="cart-item">
+      <span>{item.name} - ${item.price}</span>
+
+      <!-- Works without JS, enhanced with use:enhance -->
+      <form method="POST" action="?/remove" use:enhance>
+        <input type="hidden" name="index" value={i}>
+        <button type="submit">Remove</button>
+      </form>
+    </div>
+  {/each}
+
+  <a href="/checkout">Proceed to Checkout</a>
+{/if}
+
+{#if form?.success}
+  <p class="success">Cart updated!</p>
+{/if}
 ```
 
 ## Square Payment Integration
 
 ```ts
-// netlify/functions/checkout.ts
-import { createClient } from "@libsql/client";
-import { Client, Environment } from "square";
+// src/routes/checkout/+page.server.ts
+import { getDb } from '$lib/db';
+import { getSquareClient } from '$lib/square';
+import { fail, redirect } from '@sveltejs/kit';
 
-const db = createClient({
-  url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
-});
+export async function load({ cookies }) {
+  // Server-render cart for checkout page
+  const db = getDb();
+  const cartData = JSON.parse(cookies.get('cart') || '[]');
 
-const square = new Client({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: Environment.Production // Use Environment.Sandbox for testing
-});
-
-export default async (req: Request) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
-
-  try {
-    const { items, email, sourceId } = await req.json();
-
-    // Calculate total
-    const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-
-    // Create order in database first
-    const orderResult = await db.execute({
-      sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
-      args: [email, total]
-    });
-    const orderId = orderResult.lastInsertRowid;
-
-    // Insert order items
-    for (const item of items) {
-      await db.execute({
-        sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-        args: [orderId, item.productId, item.quantity, item.price]
+  const cart = await Promise.all(
+    cartData.map(async (item: any) => {
+      const result = await db.execute({
+        sql: "SELECT * FROM products WHERE id = ?",
+        args: [item.productId]
       });
+      return { ...result.rows[0], quantity: item.quantity };
+    })
+  );
+
+  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  return { cart, total };
+}
+
+export const actions = {
+  // Process payment (works without JavaScript via form submission)
+  checkout: async ({ request, cookies }) => {
+    const db = getDb();
+    const square = getSquareClient();
+    const data = await request.formData();
+
+    const email = data.get('email') as string;
+    const sourceId = data.get('sourceId') as string; // From Square Web SDK
+
+    try {
+      // Get cart from cookie
+      const cartData = JSON.parse(cookies.get('cart') || '[]');
+
+      // Calculate total
+      const total = cartData.reduce((sum: number, item: any) =>
+        sum + (item.price * item.quantity), 0
+      );
+
+      // Create order in database
+      const orderResult = await db.execute({
+        sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
+        args: [email, total]
+      });
+      const orderId = orderResult.lastInsertRowid;
+
+      // Insert order items
+      for (const item of cartData) {
+        await db.execute({
+          sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+          args: [orderId, item.productId, item.quantity, item.price]
+        });
+      }
+
+      // Process payment with Square
+      const payment = await square.paymentsApi.createPayment({
+        sourceId,
+        amountMoney: {
+          amount: BigInt(Math.round(total * 100)),
+          currency: "USD"
+        },
+        idempotencyKey: `order-${orderId}-${Date.now()}`
+      });
+
+      // Update order status
+      await db.execute({
+        sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
+        args: [payment.result.payment?.id, orderId]
+      });
+
+      // Clear cart
+      cookies.delete('cart', { path: '/' });
+
+      // Redirect to success page
+      throw redirect(303, `/order/${orderId}/success`);
+
+    } catch (error) {
+      console.error("Checkout error:", error);
+      return fail(500, { error: 'Payment failed. Please try again.' });
     }
-
-    // Process payment with Square
-    const payment = await square.paymentsApi.createPayment({
-      sourceId,
-      amountMoney: {
-        amount: BigInt(Math.round(total * 100)), // Convert to cents
-        currency: "USD"
-      },
-      idempotencyKey: `order-${orderId}-${Date.now()}`
-    });
-
-    // Update order with payment ID
-    await db.execute({
-      sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-      args: [payment.result.payment?.id, orderId]
-    });
-
-    return Response.json({
-      success: true,
-      orderId,
-      paymentId: payment.result.payment?.id
-    });
-
-  } catch (error) {
-    console.error("Checkout error:", error);
-    return Response.json({ error: "Checkout failed" }, { status: 500 });
   }
 };
 ```
@@ -501,13 +623,17 @@ export default async (req: Request) => {
 ```toml
 # netlify.toml
 [build]
-  command = "bun build public/index.html public/admin.html"
-  publish = "public"
+  command = "npm run build"
+  publish = "build"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_VERSION = "20"
+
+# SvelteKit adapter handles routing
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/.netlify/functions/render"
   status = 200
 
 [[headers]]
@@ -516,13 +642,48 @@ export default async (req: Request) => {
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Enable streaming for SSR
+    X-Accel-Buffering = "no"
 
 [[headers]]
-  for = "/api/*"
+  for = "/build/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://littlebitta.com"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+```
+
+## SvelteKit Configuration
+
+```js
+// svelte.config.js
+import adapter from '@sveltejs/adapter-netlify';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+
+/** @type {import('@sveltejs/kit').Config} */
+const config = {
+  preprocess: vitePreprocess(),
+
+  kit: {
+    adapter: adapter({
+      edge: false, // Use standard Netlify Functions
+      split: false // Single function for all routes
+    }),
+
+    // Enable progressive enhancement
+    csp: {
+      mode: 'auto',
+      directives: {
+        'default-src': ['self']
+      }
+    }
+  }
+};
+
+export default config;
 ```
 
 ## Security Considerations

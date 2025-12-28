@@ -1,19 +1,25 @@
 # Customer-Facing Site Architecture
 
-This document outlines the customer-facing storefront implementation using static HTML, Alpine.js, Netlify Functions, and Turso.
+This document outlines the customer-facing storefront implementation using SvelteKit with progressive enhancement, following Resilient Web Design principles.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure and [Admin Panel](admin-ui.md) for product management.
 
 ## Overview
 
-The customer-facing site is a fast, SEO-friendly storefront with client-side interactivity for shopping cart and checkout.
+The customer-facing site follows the **three-layer enhancement model**:
+
+1. **Layer 1 (HTML)** - Semantic markup, server-rendered, works everywhere
+2. **Layer 2 (CSS)** - Visual presentation, responsive design
+3. **Layer 3 (JavaScript)** - Interactivity, animations, optimistic UI
+
+**Core Principle:** Everyone is a non-JavaScript user until the JavaScript finishes loading. This site works without JavaScript and gets better with it.
 
 **Technology:**
-- **Frontend:** Static HTML/CSS with Svelte
-- **Backend:** Netlify Functions (serverless API)
+- **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML)
+- **Backend:** SvelteKit form actions + endpoints (serverless)
 - **Database:** Turso (SQLite-compatible)
 - **Payments:** Square Web Payments SDK
-- **Hosting:** Netlify (CDN, SSL, DDoS included)
+- **Hosting:** Netlify (CDN, SSL, edge functions)
 
 ## Architecture Diagram
 
@@ -43,356 +49,466 @@ The customer-facing site is a fast, SEO-friendly storefront with client-side int
 
 ## Rendering Strategy
 
-**Static HTML + Client-Side Hydration:**
+**Server-Side Rendering with Progressive Enhancement:**
 
 ```
-Initial Page Load:
-  → Static HTML served from Netlify CDN (fast, SEO-friendly)
-  → Products rendered server-side or fetched via API
+Initial Request (Server):
+  → SvelteKit renders full HTML with products
+  → Semantic markup, accessible content
+  → Works without JavaScript
 
-Svelte Loads:
-  → Adds interactivity (cart, filters, animations)
-  → No page refreshes needed
+Browser Receives HTML:
+  → User sees content immediately (no loading spinner)
+  → Forms work via standard POST
+  → Links navigate via standard HTTP
+
+JavaScript Loads (Enhancement):
+  → SvelteKit hydrates interactive components
+  → Forms enhanced with optimistic UI
+  → Smooth transitions and animations
+  → Client-side validation
 
 Checkout Flow:
-  → Square Web Payment SDK (PCI-compliant)
-  → POST to Netlify Function → Turso + Square API
+  → Works without JS via form submission
+  → Enhanced with Square Web Payment SDK
+  → Server processes payment via SvelteKit action
 ```
+
+## Progressive Enhancement Benefits
+
+**Without JavaScript:**
+- View all products
+- Read descriptions and prices
+- Add items to cart (via form POST)
+- Navigate between pages
+- Complete checkout
+- View order confirmation
+
+**With JavaScript:**
+- Smooth page transitions
+- Optimistic UI updates
+- Client-side form validation
+- Real-time cart preview
+- Animated interactions
+- Better error messages
 
 ## Frontend Implementation
 
-### Homepage (Static HTML)
+### Homepage with Server-Side Rendering
 
-```html
-<!-- public/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+```ts
+// src/routes/+page.server.ts
+import { getDb } from '$lib/db';
+
+export async function load() {
+  const db = getDb();
+
+  try {
+    const result = await db.execute(
+      `SELECT id, name, description, price, image_url, stock
+       FROM products
+       WHERE active = 1
+       ORDER BY created_at DESC`
+    );
+
+    // This data is rendered as HTML on the server
+    return {
+      products: result.rows
+    };
+  } catch (error) {
+    console.error('Failed to load products:', error);
+    return {
+      products: [],
+      error: 'Failed to load products'
+    };
+  }
+}
+```
+
+```svelte
+<!-- src/routes/+page.svelte -->
+<script>
+  export let data;
+</script>
+
+<svelte:head>
   <title>Little Bitta Granola - Artisan Granola from Minnesota</title>
   <meta name="description" content="Premium handcrafted granola made with organic ingredients. Four unique flavors available.">
-
-  <!-- SEO -->
   <meta property="og:title" content="Little Bitta Granola">
   <meta property="og:description" content="Premium handcrafted granola">
   <meta property="og:image" content="https://littlebitta.com/images/og-image.jpg">
+</svelte:head>
 
-  <!-- Svelte -->
-  <script type="module" src="/storefront.js"></script>
+<!-- Header -->
+<header>
+  <div class="container">
+    <h1>Little Bitta Granola</h1>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+      <a href="/cart">Cart</a>
+    </nav>
+  </div>
+</header>
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body x-data="storefront()" x-init="init()">
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <h2>Artisan Granola Made in Minnesota</h2>
+    <p>Small-batch, handcrafted granola with organic ingredients</p>
+  </div>
+</section>
 
-  <!-- Header -->
-  <header>
-    <div class="container">
-      <h1>Little Bitta Granola</h1>
-      <nav>
-        <a href="/">Home</a>
-        <a href="/about.html">About</a>
-        <button @click="showCart = !showCart" class="cart-button">
-          Cart (<span x-text="cart.length">0</span>)
-        </button>
-      </nav>
-    </div>
-  </header>
+<!-- Products Section -->
+<!-- This HTML is rendered on the server, visible immediately -->
+<section class="products">
+  <div class="container">
+    <h2>Our Granola</h2>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <h2>Artisan Granola Made in Minnesota</h2>
-      <p>Small-batch, handcrafted granola with organic ingredients</p>
-    </div>
-  </section>
+    {#if data.error}
+      <p class="error">{data.error}</p>
+    {/if}
 
-  <!-- Products Section -->
-  <section class="products">
-    <div class="container">
-      <h2>Our Granola</h2>
+    <!-- Products Grid: rendered as HTML, no loading spinner needed -->
+    <div class="product-grid">
+      {#each data.products as product}
+        <article class="product-card" itemscope itemtype="http://schema.org/Product">
+          <img src={product.image_url} alt={product.name} itemprop="image">
 
-      <!-- Loading State -->
-      <div x-show="loading">Loading products...</div>
+          <h3 itemprop="name">{product.name}</h3>
+          <p class="description" itemprop="description">{product.description}</p>
 
-      <!-- Products Grid -->
-      <div class="product-grid" x-show="!loading">
-        <template x-for="product in products" :key="product.id">
-          <article class="product-card" itemscope itemtype="http://schema.org/Product">
-            <img :src="product.image_url" :alt="product.name" itemprop="image">
+          <div class="product-footer" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+            <meta itemprop="priceCurrency" content="USD">
+            <span class="price" itemprop="price" content={product.price}>
+              ${product.price}
+            </span>
 
-            <h3 itemprop="name" x-text="product.name"></h3>
-            <p class="description" itemprop="description" x-text="product.description"></p>
-
-            <div class="product-footer" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-              <meta itemprop="priceCurrency" content="USD">
-              <span class="price" itemprop="price" :content="product.price">
-                $<span x-text="product.price"></span>
-              </span>
-
-              <template x-if="product.stock > 0">
-                <div>
-                  <link itemprop="availability" href="http://schema.org/InStock">
-                  <button
-                    @click="addToCart(product)"
-                    class="add-to-cart"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              </template>
-
-              <template x-if="product.stock === 0">
-                <div>
-                  <link itemprop="availability" href="http://schema.org/OutOfStock">
-                  <span class="out-of-stock">Out of Stock</span>
-                </div>
-              </template>
-            </div>
-          </article>
-        </template>
-      </div>
-    </div>
-  </section>
-
-  <!-- Shopping Cart Sidebar -->
-  <aside class="cart-sidebar" :class="{ 'open': showCart }" x-show="showCart" @click.away="showCart = false">
-    <div class="cart-header">
-      <h3>Shopping Cart</h3>
-      <button @click="showCart = false" class="close-btn">&times;</button>
-    </div>
-
-    <div class="cart-content">
-      <template x-if="cart.length === 0">
-        <p class="empty-cart">Your cart is empty</p>
-      </template>
-
-      <template x-if="cart.length > 0">
-        <div>
-          <ul class="cart-items">
-            <template x-for="(item, index) in cart" :key="index">
-              <li class="cart-item">
-                <div class="item-details">
-                  <span class="item-name" x-text="item.name"></span>
-                  <span class="item-price">$<span x-text="item.price"></span></span>
-                </div>
-                <button @click="removeFromCart(index)" class="remove-btn">Remove</button>
-              </li>
-            </template>
-          </ul>
-
-          <div class="cart-footer">
-            <div class="cart-total">
-              <strong>Total:</strong>
-              <strong>$<span x-text="cartTotal.toFixed(2)"></span></strong>
-            </div>
-            <button @click="checkout()" class="checkout-btn">Proceed to Checkout</button>
+            {#if product.stock > 0}
+              <link itemprop="availability" href="http://schema.org/InStock">
+              <!-- Works without JavaScript: standard form POST -->
+              <form method="POST" action="/cart?/add">
+                <input type="hidden" name="productId" value={product.id}>
+                <input type="hidden" name="name" value={product.name}>
+                <input type="hidden" name="price" value={product.price}>
+                <button type="submit" class="add-to-cart">
+                  Add to Cart
+                </button>
+              </form>
+            {:else}
+              <link itemprop="availability" href="http://schema.org/OutOfStock">
+              <span class="out-of-stock">Out of Stock</span>
+            {/if}
           </div>
-        </div>
-      </template>
+        </article>
+      {/each}
     </div>
-  </aside>
+  </div>
+</section>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <p>&copy; 2025 Little Bitta Granola. Made in Minnesota.</p>
-    </div>
-  </footer>
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>&copy; 2025 Little Bitta Granola. Made in Minnesota.</p>
+  </div>
+</footer>
 
-  <script>
-    function storefront() {
-      return {
-        products: [],
-        cart: JSON.parse(localStorage.getItem('cart') || '[]'),
-        showCart: false,
-        loading: true,
+<style>
+  /* CSS provides visual presentation layer */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
 
-        async init() {
-          await this.loadProducts();
-        },
+  .product-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: transform 0.2s;
+  }
 
-        async loadProducts() {
-          try {
-            const res = await fetch('/.netlify/functions/products');
-            this.products = await res.json();
-          } catch (error) {
-            console.error('Failed to load products:', error);
-          } finally {
-            this.loading = false;
-          }
-        },
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
 
-        get cartTotal() {
-          return this.cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
-        },
-
-        addToCart(product) {
-          this.cart.push({
-            id: product.id,
-            name: product.name,
-            price: product.price
-          });
-          this.saveCart();
-          this.showCart = true;
-        },
-
-        removeFromCart(index) {
-          this.cart.splice(index, 1);
-          this.saveCart();
-        },
-
-        saveCart() {
-          localStorage.setItem('cart', JSON.stringify(this.cart));
-        },
-
-        async checkout() {
-          // Redirect to checkout page with cart data
-          window.location.href = `/checkout.html?items=${encodeURIComponent(JSON.stringify(this.cart))}`;
-        }
-      };
+  /* Mobile-first responsive design */
+  @media (max-width: 640px) {
+    .product-grid {
+      grid-template-columns: 1fr;
     }
-  </script>
-</body>
-</html>
+  }
+</style>
 ```
 
-### Checkout Page with Square
+### Cart Page with Progressive Enhancement
 
-```html
-<!-- public/checkout.html -->
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout - Little Bitta Granola</title>
-  <script type="module" src="/checkout.js"></script>
-  <script src="https://web.squarecdn.com/v1/square.js"></script>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body x-data="checkoutPage()" x-init="init()">
-  <div class="container">
-    <h1>Checkout</h1>
+```ts
+// src/routes/cart/+page.server.ts
+import { getDb } from '$lib/db';
 
-    <!-- Order Summary -->
-    <div class="order-summary">
-      <h2>Order Summary</h2>
-      <ul>
-        <template x-for="item in items">
-          <li>
-            <span x-text="item.name"></span>
-            <span>$<span x-text="item.price"></span></span>
-          </li>
-        </template>
-      </ul>
-      <div class="total">
-        <strong>Total:</strong>
-        <strong>$<span x-text="total.toFixed(2)"></span></strong>
-      </div>
+export const actions = {
+  // Add to cart (works without JavaScript)
+  add: async ({ request, cookies }) => {
+    const data = await request.formData();
+    const productId = data.get('productId');
+    const name = data.get('name');
+    const price = data.get('price');
+
+    const cart = JSON.parse(cookies.get('cart') || '[]');
+    cart.push({ productId, name, price, quantity: 1 });
+    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+
+    return { success: true, message: 'Added to cart!' };
+  },
+
+  // Remove from cart
+  remove: async ({ request, cookies }) => {
+    const data = await request.formData();
+    const index = Number(data.get('index'));
+
+    const cart = JSON.parse(cookies.get('cart') || '[]');
+    cart.splice(index, 1);
+    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+
+    return { success: true };
+  }
+};
+
+export async function load({ cookies }) {
+  const cart = JSON.parse(cookies.get('cart') || '[]');
+  const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+
+  return { cart, total };
+}
+```
+
+```svelte
+<!-- src/routes/cart/+page.svelte -->
+<script>
+  import { enhance } from '$app/forms';
+  export let data;
+  export let form;
+</script>
+
+<div class="container">
+  <h1>Shopping Cart</h1>
+
+  {#if data.cart.length === 0}
+    <p>Your cart is empty. <a href="/">Continue shopping</a></p>
+  {:else}
+    <!-- Server-rendered cart items -->
+    <ul class="cart-items">
+      {#each data.cart as item, i}
+        <li class="cart-item">
+          <div class="item-details">
+            <span class="item-name">{item.name}</span>
+            <span class="item-price">${item.price}</span>
+          </div>
+
+          <!-- Form works without JavaScript -->
+          <form method="POST" action="?/remove" use:enhance>
+            <input type="hidden" name="index" value={i}>
+            <button type="submit" class="remove-btn">Remove</button>
+          </form>
+        </li>
+      {/each}
+    </ul>
+
+    <div class="cart-total">
+      <strong>Total:</strong>
+      <strong>${data.total.toFixed(2)}</strong>
     </div>
 
-    <!-- Customer Info -->
-    <form @submit.prevent="processPayment">
-      <h2>Contact Information</h2>
-      <input x-model="email" type="email" placeholder="Email" required>
+    <!-- Standard link, no JavaScript required -->
+    <a href="/checkout" class="checkout-btn">Proceed to Checkout</a>
+  {/if}
 
-      <h2>Payment</h2>
-      <div id="card-container"></div>
+  {#if form?.success}
+    <p class="success">{form.message}</p>
+  {/if}
+</div>
+```
 
-      <button type="submit" :disabled="processing">
-        <span x-show="!processing">Pay $<span x-text="total.toFixed(2)"></span></span>
-        <span x-show="processing">Processing...</span>
-      </button>
+### Checkout Page with Progressive Enhancement
 
-      <p x-show="error" style="color: red;" x-text="error"></p>
-    </form>
+```ts
+// src/routes/checkout/+page.server.ts
+import { getDb } from '$lib/db';
+import { getSquareClient } from '$lib/square';
+import { fail, redirect } from '@sveltejs/kit';
+
+export async function load({ cookies }) {
+  const cart = JSON.parse(cookies.get('cart') || '[]');
+
+  if (cart.length === 0) {
+    throw redirect(303, '/cart');
+  }
+
+  const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+
+  return {
+    cart,
+    total,
+    squareAppId: process.env.SQUARE_APP_ID,
+    squareLocationId: process.env.SQUARE_LOCATION_ID
+  };
+}
+
+export const actions = {
+  checkout: async ({ request, cookies }) => {
+    const db = getDb();
+    const square = getSquareClient();
+    const data = await request.formData();
+
+    const email = data.get('email') as string;
+    const sourceId = data.get('sourceId') as string;
+
+    try {
+      const cart = JSON.parse(cookies.get('cart') || '[]');
+      const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+
+      // Create order
+      const orderResult = await db.execute({
+        sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
+        args: [email, total]
+      });
+      const orderId = orderResult.lastInsertRowid;
+
+      // Insert order items
+      for (const item of cart) {
+        await db.execute({
+          sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+          args: [orderId, item.productId, 1, item.price]
+        });
+      }
+
+      // Process payment
+      const payment = await square.paymentsApi.createPayment({
+        sourceId,
+        amountMoney: {
+          amount: BigInt(Math.round(total * 100)),
+          currency: "USD"
+        },
+        idempotencyKey: `order-${orderId}-${Date.now()}`
+      });
+
+      // Update order
+      await db.execute({
+        sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
+        args: [payment.result.payment?.id, orderId]
+      });
+
+      // Clear cart
+      cookies.delete('cart', { path: '/' });
+
+      // Redirect to success page
+      throw redirect(303, `/order/${orderId}/success`);
+
+    } catch (error) {
+      console.error("Checkout error:", error);
+      return fail(500, { error: 'Payment failed. Please try again.' });
+    }
+  }
+};
+```
+
+```svelte
+<!-- src/routes/checkout/+page.svelte -->
+<script>
+  import { enhance } from '$app/forms';
+  import { onMount } from 'svelte';
+
+  export let data;
+  export let form;
+
+  let squareCard;
+  let processing = false;
+
+  // Progressive enhancement: Square SDK is optional
+  onMount(async () => {
+    if (typeof Square !== 'undefined') {
+      const payments = Square.payments(data.squareAppId, data.squareLocationId);
+      squareCard = await payments.card();
+      await squareCard.attach('#card-container');
+    }
+  });
+
+  async function handleSubmit(event) {
+    processing = true;
+
+    if (squareCard) {
+      // With JavaScript: tokenize card with Square
+      event.preventDefault();
+      const result = await squareCard.tokenize();
+
+      if (result.status === 'OK') {
+        const formData = new FormData(event.target);
+        formData.append('sourceId', result.token);
+
+        // Submit form programmatically
+        event.target.submit();
+      } else {
+        processing = false;
+        alert('Card validation failed');
+      }
+    }
+    // Without JavaScript: form submits normally
+  }
+</script>
+
+<svelte:head>
+  <script src="https://web.squarecdn.com/v1/square.js"></script>
+</svelte:head>
+
+<div class="container">
+  <h1>Checkout</h1>
+
+  <!-- Order Summary (server-rendered) -->
+  <div class="order-summary">
+    <h2>Order Summary</h2>
+    <ul>
+      {#each data.cart as item}
+        <li>
+          <span>{item.name}</span>
+          <span>${item.price}</span>
+        </li>
+      {/each}
+    </ul>
+    <div class="total">
+      <strong>Total:</strong>
+      <strong>${data.total.toFixed(2)}</strong>
+    </div>
   </div>
 
-  <script>
-    function checkoutPage() {
-      return {
-        items: [],
-        email: '',
-        total: 0,
-        processing: false,
-        error: '',
-        card: null,
+  <!-- Checkout Form -->
+  <form method="POST" action="?/checkout" on:submit={handleSubmit} use:enhance>
+    <h2>Contact Information</h2>
+    <label>
+      Email
+      <input type="email" name="email" required>
+    </label>
 
-        async init() {
-          // Get cart from URL params
-          const params = new URLSearchParams(window.location.search);
-          this.items = JSON.parse(decodeURIComponent(params.get('items') || '[]'));
-          this.total = this.items.reduce((sum, item) => sum + parseFloat(item.price), 0);
+    <h2>Payment</h2>
+    <!-- Square card container (enhanced with JS) -->
+    <div id="card-container"></div>
 
-          // Initialize Square
-          await this.initializeSquare();
-        },
+    <!-- Fallback: works without Square SDK -->
+    <noscript>
+      <p>JavaScript is required for payment processing. Please enable JavaScript to complete your order.</p>
+    </noscript>
 
-        async initializeSquare() {
-          const payments = Square.payments(
-            'YOUR_SQUARE_APP_ID',
-            'YOUR_SQUARE_LOCATION_ID'
-          );
+    <button type="submit" disabled={processing}>
+      {processing ? 'Processing...' : `Pay $${data.total.toFixed(2)}`}
+    </button>
 
-          this.card = await payments.card();
-          await this.card.attach('#card-container');
-        },
-
-        async processPayment() {
-          if (!this.email) {
-            this.error = 'Please enter your email';
-            return;
-          }
-
-          this.processing = true;
-          this.error = '';
-
-          try {
-            // Tokenize card
-            const result = await this.card.tokenize();
-            if (result.status === 'OK') {
-              // Send to backend
-              const response = await fetch('/.netlify/functions/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  sourceId: result.token,
-                  items: this.items.map(item => ({
-                    productId: item.id,
-                    quantity: 1,
-                    price: item.price
-                  })),
-                  email: this.email
-                })
-              });
-
-              const data = await response.json();
-
-              if (data.success) {
-                // Clear cart
-                localStorage.removeItem('cart');
-                // Redirect to success page
-                window.location.href = `/success.html?order=${data.orderId}`;
-              } else {
-                this.error = data.error || 'Payment failed';
-              }
-            } else {
-              this.error = 'Card tokenization failed';
-            }
-          } catch (error) {
-            console.error('Payment error:', error);
-            this.error = 'Payment failed. Please try again.';
-          } finally {
-            this.processing = false;
-          }
-        }
-      };
-    }
-  </script>
-</body>
-</html>
+    {#if form?.error}
+      <p class="error">{form.error}</p>
+    {/if}
+  </form>
+</div>
 ```
 
 ## Backend: Netlify Functions
@@ -507,32 +623,51 @@ export default async (req: Request) => {
 
 ## Data Flow
 
+**Progressive Enhancement Model:**
+
 ```
-1. Customer visits homepage
+1. Customer requests homepage
    ↓
-2. Browser loads static HTML from Netlify CDN (fast!)
+2. SvelteKit renders HTML on server
+   - Queries Turso for products
+   - Generates semantic HTML
    ↓
-3. Alpine.js fetches products from /.netlify/functions/products
+3. Browser receives complete HTML
+   - Content visible immediately
+   - No loading spinners
+   - Works without JavaScript
    ↓
-4. Products displayed (from Turso database)
+4. JavaScript loads (enhancement)
+   - SvelteKit hydrates components
+   - Adds smooth transitions
+   - Enables optimistic UI
    ↓
-5. Customer adds items to cart (Alpine.js + localStorage)
+5. Customer adds to cart
+   - Without JS: Form POST to /cart?/add
+   - With JS: Enhanced with use:enhance (no page reload)
+   - Cart stored in server-side cookie
    ↓
-6. Customer clicks checkout → /checkout.html
+6. Checkout page
+   - Server renders cart summary from cookie
+   - Square SDK enhances payment form
+   - Form works via POST even without Square
    ↓
-7. Square Web SDK collects payment info (PCI-compliant)
+7. Payment processing
+   - Square tokenizes card (client-side)
+   - Form submits to SvelteKit action
+   - Server creates order in Turso
+   - Server processes payment with Square API
    ↓
-8. Square tokenizes card → sourceId
-   ↓
-9. POST to /.netlify/functions/checkout with sourceId + items
-   ↓
-10. Netlify Function:
-    - Creates order in Turso
-    - Processes payment with Square API
-    - Updates order status
-   ↓
-11. Redirect to success page
+8. Order complete
+   - Server redirects to success page
+   - Success page rendered with order details
 ```
+
+**Key Difference from SPA:**
+- HTML rendered on server (not client)
+- Content accessible immediately (no "loading..." state)
+- Forms work via standard HTTP POST (not just AJAX)
+- JavaScript enhances but isn't required
 
 ## SEO Optimization
 

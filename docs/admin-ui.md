@@ -1,7 +1,7 @@
 # Admin Panel Architecture
 
 This document outlines the admin panel implementation for managing products and
-orders using Netlify Functions, Turso, and Svelte.
+orders using SvelteKit with server-side rendering.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for complete infrastructure
 > setup and [Customer-Facing Site](customer-facing.md) for the public
@@ -15,10 +15,27 @@ The admin panel provides a web-based interface for managing:
 - Basic analytics (sales, inventory)
 
 **Technology:**
-- **Frontend:** Static HTML with Svelte
-- **Backend:** Netlify Functions (serverless API)
+- **Frontend:** SvelteKit with SSR (server-rendered forms)
+- **Backend:** SvelteKit form actions (serverless)
 - **Database:** Turso (SQLite-compatible)
-- **Authentication:** Simple token-based auth (expandable to JWT)
+- **Authentication:** Session-based auth with cookies
+
+## Design Philosophy
+
+**Admin Panel vs Customer-Facing Site:**
+
+The admin panel is a **private tool** for authorized users, so we can be more
+pragmatic about progressive enhancement:
+
+- **Still use server-side rendering** - Fast initial page loads, works without JS
+- **Forms still work without JavaScript** - But richer interactions are acceptable
+- **Can assume modern browsers** - Admin users likely have up-to-date browsers
+- **Enhanced UX is valuable** - Real-time updates, drag-and-drop, etc. improve workflow
+
+**Progressive Enhancement Approach:**
+1. **Core functionality via forms** - Add/edit/delete works without JavaScript
+2. **Enhanced interactions** - Inline editing, optimistic updates, better UX with JavaScript
+3. **Server-side validation** - Never trust client-side validation alone
 
 ## Database Schema
 
@@ -70,134 +87,214 @@ CREATE TABLE admin_users (
 ## Route Structure
 
 ```
-/admin                     → Admin login page (public/admin.html)
-/admin/dashboard           → Admin dashboard (same file, conditional rendering)
+/admin                     → Admin dashboard (requires auth)
+/admin/login               → Login page
+/admin/products            → Product management
+/admin/products/new        → Add new product
+/admin/products/[id]/edit  → Edit product
+/admin/orders              → Order management
+/admin/orders/[id]         → Order details
 
-API Endpoints (Netlify Functions):
-/.netlify/functions/admin-login       → POST: Authenticate admin
-/.netlify/functions/admin-products    → GET/POST/PUT/DELETE: Manage products
-/.netlify/functions/admin-orders      → GET/PUT: View and update orders
+All routes use SvelteKit:
+- Server-side rendering (SSR)
+- Form actions for mutations
+- Session-based authentication
 ```
 
-## Backend: Netlify Functions
+## Backend: SvelteKit Server Routes
 
-### Admin Login Function
+### Admin Login with Session Management
 
 ```ts
-// netlify/functions/admin-login.ts
-import { createClient } from "@libsql/client";
+// src/routes/admin/login/+page.server.ts
+import { getDb } from '$lib/server/db';
+import { fail, redirect } from '@sveltejs/kit';
+import * as crypto from 'crypto';
 
-const db = createClient({
-  url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
-});
+export const actions = {
+  login: async ({ request, cookies }) => {
+    const db = getDb();
+    const data = await request.formData();
+    const username = data.get('username') as string;
+    const password = data.get('password') as string;
 
-export default async (req: Request) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
+    try {
+      // Get admin user from database
+      const result = await db.execute({
+        sql: "SELECT * FROM admin_users WHERE username = ?",
+        args: [username]
+      });
 
-  try {
-    const { username, password } = await req.json();
+      if (result.rows.length === 0) {
+        return fail(401, { error: "Invalid credentials" });
+      }
 
-    // Get admin user from database
-    const result = await db.execute({
-      sql: "SELECT * FROM admin_users WHERE username = ?",
-      args: [username]
-    });
+      const admin = result.rows[0];
 
-    if (result.rows.length === 0) {
-      return Response.json({ error: "Invalid credentials" }, { status: 401 });
+      // Verify password
+      const isValid = await Bun.password.verify(
+        password,
+        admin.password_hash as string
+      );
+
+      if (!isValid) {
+        return fail(401, { error: "Invalid credentials" });
+      }
+
+      // Create session
+      const sessionId = crypto.randomUUID();
+      cookies.set('session', sessionId, {
+        path: '/admin',
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 7 // 1 week
+      });
+
+      // Store session in database or memory
+      await db.execute({
+        sql: "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, ?)",
+        args: [sessionId, admin.id, new Date().toISOString()]
+      });
+
+      throw redirect(303, '/admin');
+
+    } catch (error) {
+      if (error instanceof redirect) throw error;
+      console.error("Login error:", error);
+      return fail(500, { error: 'Login failed' });
     }
-
-    const admin = result.rows[0];
-
-    // Verify password (use Bun.password.verify in production)
-    const isValid = await Bun.password.verify(
-      password,
-      admin.password_hash as string
-    );
-
-    if (!isValid) {
-      return Response.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    // Generate simple token (use JWT in production)
-    const token = process.env.ADMIN_SECRET;
-
-    return Response.json({ token, username: admin.username });
-  } catch (error) {
-    console.error("Login error:", error);
-    return Response.json({ error: "Login failed" }, { status: 500 });
   }
 };
 ```
 
-### Admin Products Function
+```svelte
+<!-- src/routes/admin/login/+page.svelte -->
+<script>
+  import { enhance } from '$app/forms';
+  export let form;
+</script>
+
+<div class="login-container">
+  <h1>Admin Login</h1>
+
+  <!-- Works without JavaScript via standard form POST -->
+  <form method="POST" action="?/login" use:enhance>
+    <label>
+      Username
+      <input type="text" name="username" required>
+    </label>
+
+    <label>
+      Password
+      <input type="password" name="password" required>
+    </label>
+
+    <button type="submit">Login</button>
+
+    {#if form?.error}
+      <p class="error">{form.error}</p>
+    {/if}
+  </form>
+</div>
+```
+
+### Admin Product Management
 
 ```ts
-// netlify/functions/admin-products.ts
-import { createClient } from "@libsql/client";
+// src/routes/admin/products/+page.server.ts
+import { getDb } from '$lib/server/db';
+import { fail, redirect } from '@sveltejs/kit';
 
-const db = createClient({
-  url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
-});
-
-function isAuthenticated(req: Request): boolean {
-  const authHeader = req.headers.get("Authorization");
-  return authHeader === `Bearer ${process.env.ADMIN_SECRET}`;
+// Check authentication
+async function requireAuth(cookies) {
+  const sessionId = cookies.get('session');
+  if (!sessionId) {
+    throw redirect(303, '/admin/login');
+  }
+  // Verify session in database
+  return sessionId;
 }
 
-export default async (req: Request) => {
-  if (!isAuthenticated(req)) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+export async function load({ cookies }) {
+  await requireAuth(cookies);
+  const db = getDb();
 
-  const url = new URL(req.url);
-  const method = req.method;
+  const result = await db.execute(
+    "SELECT * FROM products ORDER BY created_at DESC"
+  );
 
-  try {
-    // GET: List all products
-    if (method === "GET") {
-      const result = await db.execute("SELECT * FROM products ORDER BY created_at DESC");
-      return Response.json(result.rows);
-    }
+  return {
+    products: result.rows
+  };
+}
 
-    // POST: Create new product
-    if (method === "POST") {
-      const product = await req.json();
+export const actions = {
+  // Create new product
+  create: async ({ request, cookies }) => {
+    await requireAuth(cookies);
+    const db = getDb();
+    const data = await request.formData();
+
+    try {
       await db.execute({
         sql: "INSERT INTO products (name, description, price, image_url, stock) VALUES (?, ?, ?, ?, ?)",
-        args: [product.name, product.description, product.price, product.image_url, product.stock || 0]
+        args: [
+          data.get('name'),
+          data.get('description'),
+          data.get('price'),
+          data.get('image_url'),
+          data.get('stock') || 0
+        ]
       });
-      return Response.json({ success: true });
-    }
 
-    // PUT: Update product
-    if (method === "PUT") {
-      const product = await req.json();
+      return { success: true, message: 'Product created' };
+    } catch (error) {
+      return fail(500, { error: 'Failed to create product' });
+    }
+  },
+
+  // Update product
+  update: async ({ request, cookies }) => {
+    await requireAuth(cookies);
+    const db = getDb();
+    const data = await request.formData();
+
+    try {
       await db.execute({
         sql: "UPDATE products SET name = ?, description = ?, price = ?, image_url = ?, stock = ? WHERE id = ?",
-        args: [product.name, product.description, product.price, product.image_url, product.stock, product.id]
+        args: [
+          data.get('name'),
+          data.get('description'),
+          data.get('price'),
+          data.get('image_url'),
+          data.get('stock'),
+          data.get('id')
+        ]
       });
-      return Response.json({ success: true });
-    }
 
-    // DELETE: Soft delete product (set active = 0)
-    if (method === "DELETE") {
-      const id = url.searchParams.get("id");
+      return { success: true, message: 'Product updated' };
+    } catch (error) {
+      return fail(500, { error: 'Failed to update product' });
+    }
+  },
+
+  // Delete product (soft delete)
+  delete: async ({ request, cookies }) => {
+    await requireAuth(cookies);
+    const db = getDb();
+    const data = await request.formData();
+
+    try {
       await db.execute({
         sql: "UPDATE products SET active = 0 WHERE id = ?",
-        args: [id]
+        args: [data.get('id')]
       });
-      return Response.json({ success: true });
-    }
 
-    return new Response("Method not allowed", { status: 405 });
-  } catch (error) {
-    console.error("Admin products error:", error);
-    return Response.json({ error: "Operation failed" }, { status: 500 });
+      return { success: true, message: 'Product deleted' };
+    } catch (error) {
+      return fail(500, { error: 'Failed to delete product' });
+    }
   }
 };
 ```
@@ -531,19 +628,56 @@ export default async (req: Request) => {
 
 ## Authentication Strategy
 
-### Launch (Simple Token)
-```bash
-# Set in Netlify environment variables
-ADMIN_SECRET=your-random-secret-here
+### Session-Based Authentication (Recommended)
+
+**Why sessions over tokens:**
+- More secure (httpOnly cookies can't be accessed by JavaScript)
+- Automatic CSRF protection with SvelteKit
+- Easy to revoke (delete from database)
+- Works without JavaScript
+
+**Implementation:**
+```ts
+// src/hooks.server.ts
+import { getDb } from '$lib/server/db';
+import { redirect } from '@sveltejs/kit';
+
+export async function handle({ event, resolve }) {
+  // Check if route requires authentication
+  if (event.url.pathname.startsWith('/admin') &&
+      event.url.pathname !== '/admin/login') {
+
+    const sessionId = event.cookies.get('session');
+
+    if (!sessionId) {
+      throw redirect(303, '/admin/login');
+    }
+
+    // Verify session
+    const db = getDb();
+    const result = await db.execute({
+      sql: "SELECT * FROM sessions WHERE id = ? AND expires_at > ?",
+      args: [sessionId, new Date().toISOString()]
+    });
+
+    if (result.rows.length === 0) {
+      event.cookies.delete('session', { path: '/' });
+      throw redirect(303, '/admin/login');
+    }
+
+    // Attach user to event.locals
+    event.locals.user = result.rows[0];
+  }
+
+  return resolve(event);
+}
 ```
 
-All admin functions check for `Authorization: Bearer ${ADMIN_SECRET}` header.
-
-### Production (JWT Tokens)
-Upgrade to JWT for:
-- Token expiration
-- Multiple admin users
-- Role-based permissions
+**Session Management:**
+- Sessions stored in database
+- Automatic expiration
+- Logout deletes session
+- Works with or without JavaScript
 
 ## File Uploads (Product Images)
 
