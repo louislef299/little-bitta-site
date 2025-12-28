@@ -35,11 +35,19 @@ See [docs/cloud-arch.md](docs/cloud-arch.md) for complete architecture details.
 
 ## Documentation
 
+### Technical Documentation
+
 - [Cloud Architecture](docs/cloud-arch.md) - Infrastructure, deployment, and
   scaling strategy
 - [Customer-Facing Site](docs/customer-facing.md) - Public storefront
   implementation
 - [Admin Panel](docs/admin-ui.md) - Product and order management interface
+- [Local Development](docs/local-dev.md) - Development setup and workflow
+
+### Business Documentation
+
+- [HAMMER & ANVIL](docs/HAMMER_ANVIL.md) - Resilient Web Design consulting
+  service offering and business plan
 
 ## Design Principles
 
