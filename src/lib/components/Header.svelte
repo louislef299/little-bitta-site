@@ -58,7 +58,8 @@
 	</a></h1>
 
 	<nav class="navigation">
-		<a href="/">home</a>
 		<a href="/about">about</a>
+		<a href="/shop">shop</a>
+		<a href="/cart">cart</a>
 	</nav>
 </header>
