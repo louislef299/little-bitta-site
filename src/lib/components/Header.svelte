@@ -49,12 +49,36 @@
 		height: 2.5rem;
 		width: 3rem;
 	}
+
+	/* layer header & nav if small enough(tablets & phones) */
+	@media (max-width: 768px) {
+		header {
+			flex-direction: column;
+			gap: 1rem;
+		}
+
+		h1 {
+			text-align: center;
+		}
+
+		nav {
+			justify-content: center;
+		}
+	}
+
+	/* remove header text if on phone */
+	@media (max-width: 640px) {
+		.lbg-text {
+			display: none;
+		}
+	}
+
 </style>
 
 <header>
 	<h1><a href="/">
 		<img class="logo" alt="Little Bitta Elephant" src={logo} />
-		Little Bitta Granola
+		<span class="lbg-text">Little Bitta Granola</span>
 	</a></h1>
 
 	<nav class="navigation">
