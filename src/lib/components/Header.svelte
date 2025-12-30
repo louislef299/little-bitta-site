@@ -26,6 +26,9 @@
 	a {
 		text-decoration: none;
 		color: #333;
+	}
+
+	.navigation a {
 		font-weight: 500;
 		padding: 0.5rem;
 		border-radius: 4px;
@@ -33,12 +36,12 @@
 		transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 	}
 
-	a:hover {
+	.navigation a:hover {
 		border-color: rgb(170, 3, 248);
 		color: rgb(170, 3, 248);
 	}
 
-	a:active {
+	.navigation a:active {
 		transform: translateY(1px);
 	}
 
@@ -49,12 +52,12 @@
 </style>
 
 <header>
-	<h1>
+	<h1><a href="/">
 		<img class="logo" alt="Little Bitta Elephant" src={logo} />
 		Little Bitta Granola
-	</h1>
+	</a></h1>
 
-	<nav>
+	<nav class="navigation">
 		<a href="/">home</a>
 		<a href="/about">about</a>
 	</nav>
