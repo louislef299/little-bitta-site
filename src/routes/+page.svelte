@@ -3,7 +3,7 @@
     Minnesota based, homemade, small-batch granola. With everything made
     locally, and by the pro herself, you can comfortably know that you will get
     the best taste and quality in your granola, every time. To learn more about
-    our story, check out About Us.
+    our story, check out <a href="/about"><code>/about</code></a>.
 </p>
 
 <h2>Contact Michele Directly</h2>
