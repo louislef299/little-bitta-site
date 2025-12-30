@@ -1,20 +1,15 @@
-<nav>
-	<a href="/">home</a>
-	<a href="/about">about</a>
-</nav>
-
 <style>
 	nav {
 		display: flex;
 		gap: 1.5rem;
-		padding: 1rem 2rem;
+		padding: 0.25rem;
 	}
 
 	a {
 		text-decoration: none;
 		color: #333;
 		font-weight: 500;
-		padding: 0.5rem 1rem;
+		padding: 0.5rem;
 		border-radius: 4px;
 		border: 1px dotted transparent;
 		transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
@@ -29,3 +24,8 @@
 		transform: translateY(1px);
 	}
 </style>
+
+<nav>
+	<a href="/">home</a>
+	<a href="/about">about</a>
+</nav>
