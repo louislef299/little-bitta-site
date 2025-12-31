@@ -1,3 +1,8 @@
+<!--
+    A generic name like Toggle requires a description... this is just a theme
+    toggle component. I'll need it to actually toggle off of a button with an
+    icon if possible, but I need to focus on other aspects of the site first.
+-->
 <script lang="ts">
     import { onMount } from 'svelte';
 
@@ -32,8 +37,9 @@
 </script>
 
 <!--
-Will need to come back and fix this, for now I'm just going to default to the
-system theme for my needs lol. Don't want to sear my eyeballs while working on
-this...
-<button onclick={updateColorScheme}>Theme Toggle</button>
+    Will need to come back and fix this, for now I'm just going to default to
+    the system theme for my needs lol. Don't want to sear my eyeballs while
+    working on this...
+
+    <button onclick={updateColorScheme}>Theme Toggle</button>
 -->
