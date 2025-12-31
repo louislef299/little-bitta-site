@@ -1,6 +1,5 @@
 import { browser } from '$app/environment';
 
-// Define your cart item type
 type CartItem = {
 	id: string;
 	name: string;
@@ -8,7 +7,6 @@ type CartItem = {
 	quantity: number;
 };
 
-// Create the cart state
 export const cart = $state({
 	items: loadCart()
 });
@@ -28,14 +26,12 @@ function loadCart(): CartItem[] {
 	return [];
 }
 
-// Save cart to localStorage
 function saveCart(items: CartItem[]) {
 	if (browser) {
 		localStorage.setItem('cart', JSON.stringify(items));
 	}
 }
 
-// Helper to add item to cart
 export function addToCart(item: Omit<CartItem, 'quantity'>) {
 	const existing = cart.items.find((i) => i.id === item.id);
 	if (existing) {
@@ -46,13 +42,11 @@ export function addToCart(item: Omit<CartItem, 'quantity'>) {
 	saveCart(cart.items);
 }
 
-// Helper to remove item from cart
 export function removeFromCart(itemId: string) {
 	cart.items = cart.items.filter((i) => i.id !== itemId);
 	saveCart(cart.items);
 }
 
-// Helper to update quantity
 export function updateQuantity(itemId: string, quantity: number) {
 	const item = cart.items.find((i) => i.id === itemId);
 	if (item) {
@@ -65,13 +59,21 @@ export function updateQuantity(itemId: string, quantity: number) {
 	}
 }
 
-// Helper to clear the cart
 export function clearCart() {
 	cart.items = []
 	localStorage.removeItem('cart');
 }
 
-// Helper to get cart total
 export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+// Default return of 0 if item is not found
+export function getItemTotal(id: string) {
+	for (let i of cart.items) {
+		if (i.id === id) {
+			return i.quantity;
+		}
+	}
+	return 0;
 }

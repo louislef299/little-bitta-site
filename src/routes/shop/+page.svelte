@@ -1,5 +1,5 @@
-<script>
-    import { addToCart } from '$lib/cart.svelte';
+<script lang="ts">
+    import { addToCart, getItemTotal, updateQuantity } from '$lib/cart.svelte';
 
     var items = [
         { id: "1", name: "Peanut Butter Nutella", price: 10, img: "/images/granola-generic.jpg"},
@@ -7,6 +7,10 @@
         { id: "3", name: "Peanut Butter Chocolate Chip", price: 10, img: "/images/granola-generic.jpg"},
         { id: "4", name: "Honey Bear", price: 10, img: "/images/granola-generic.jpg"}
     ]
+
+    function reduceByOne(id: string) {
+        updateQuantity(id, (getItemTotal(id)-1));
+    }
 </script>
 
 <style>
@@ -32,7 +36,10 @@
             <br />
             {item.name} @ ${item.price}/lb
             <br />
-            <button type="button" onclick={() => addToCart(item)}>+Cart</button>
+            <button type="button" onclick={() => addToCart(item)}>
+                +Cart {#if getItemTotal(item.id) > 0 }{getItemTotal(item.id)}{/if}
+            </button>
+            <button type="button" onclick={() => reduceByOne(item.id)}>-Cart</button>
         </li>
 	{/each}
 </ul>
