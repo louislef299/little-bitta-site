@@ -1,5 +1,6 @@
 <script lang="ts">
 	import logo from '$lib/assets/purple-elephant.png';
+	import Toggle from '$lib/components/Toggle.svelte'
 </script>
 
 <style>
@@ -19,13 +20,13 @@
 
 	nav {
 		display: flex;
-		gap: 1.5rem;
+		gap: 0.1rem;
 		padding: 0.25rem;
 	}
 
 	a {
 		text-decoration: none;
-		color: #333;
+		color: var(--text-color);
 	}
 
 	.navigation a {
@@ -86,4 +87,6 @@
 		<a href="/shop">shop</a>
 		<a href="/cart">cart</a>
 	</nav>
+
+	<Toggle />
 </header>
