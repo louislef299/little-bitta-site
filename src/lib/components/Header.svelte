@@ -1,6 +1,7 @@
 <script lang="ts">
 	import logo from '$lib/assets/purple-elephant.png';
 	import Toggle from '$lib/components/Toggle.svelte'
+	import { getItemTotal } from '$lib/cart.svelte'
 </script>
 
 <style>
@@ -79,7 +80,7 @@
 	<nav class="navigation">
 		<a href="/about">about</a>
 		<a href="/shop">shop</a>
-		<a href="/cart">cart</a>
+		<a href="/cart">cart{#if getItemTotal() > 0}({getItemTotal()}){/if}</a>
 	</nav>
 
 	<Toggle />

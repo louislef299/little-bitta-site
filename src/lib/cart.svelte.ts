@@ -68,8 +68,16 @@ export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
+export function getItemTotal() {
+	let total = 0;
+	for (let i of cart.items) {
+		total += i.quantity;
+	}
+	return total;
+}
+
 // Default return of 0 if item is not found
-export function getItemTotal(id: string) {
+export function getTotalForItem(id: string) {
 	for (let i of cart.items) {
 		if (i.id === id) {
 			return i.quantity;
