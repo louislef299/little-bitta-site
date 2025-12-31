@@ -32,20 +32,6 @@
 		font-weight: 600;
 	}
 
-	.clear-btn {
-		padding: 0.5rem 1rem;
-		border: 1px dotted rgb(170, 3, 248);
-		border-radius: 4px;
-		background: transparent;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.clear-btn:hover {
-		background: rgb(170, 3, 248);
-		color: white;
-	}
-
 	.empty-cart {
 		text-align: center;
 		padding: 3rem;
@@ -68,7 +54,7 @@
 
 		<div class="cart-footer">
 			<span class="total">Total: ${total.toFixed(2)}</span>
-			<button class="clear-btn" type="button" onclick={clearCart}>Clear Cart</button>
+			<button type="button" onclick={clearCart}>Clear Cart</button>
 		</div>
 	{:else}
 		<div class="empty-cart">

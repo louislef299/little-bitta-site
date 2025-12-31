@@ -29,6 +29,26 @@
 		color: rgb(170, 3, 248);
 	}
 
+	:global(button) {
+		padding: 0.5rem 1rem;
+		border: 1px dotted rgb(170, 3, 248);
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-color);
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s ease;
+	}
+
+	:global(button:hover) {
+		background: rgb(170, 3, 248);
+		color: white;
+	}
+
+	:global(button:active) {
+		transform: translateY(1px);
+	}
+
 	:global(body) {
 		font-family:Verdana,sans-serif;
 		margin:auto;

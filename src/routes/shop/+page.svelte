@@ -26,6 +26,10 @@
       grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
       gap: 1rem;
     }
+
+    button {
+        padding: 0.5rem 0.5rem;
+    }
 </style>
 
 <h1>Granola Available</h1>
