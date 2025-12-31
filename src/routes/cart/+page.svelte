@@ -43,11 +43,6 @@
 </style>
 
 <div class="cart-container">
-	<p>
-        Your Cart has {cart.items.length} {cart.items.length === 1 ? 'item' :
-        'items'}
-    </p>
-
 	{#if cart.items.length > 0}
 		<div class="cart-items">
 			{#each cart.items as item}
