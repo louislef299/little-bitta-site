@@ -25,11 +25,14 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+        gap: 0.5rem;
+        margin-right: 0.5rem;
 	}
 
 	.total {
 		font-size: 1.5rem;
 		font-weight: 600;
+        flex: 1;
 	}
 
 	.empty-cart {
@@ -54,6 +57,7 @@
 
 		<div class="cart-footer">
 			<span class="total">Total: ${total.toFixed(2)}</span>
+            <button type="button">Buy</button>
 			<button type="button" onclick={clearCart}>Clear Cart</button>
 		</div>
 	{:else}
