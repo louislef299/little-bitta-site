@@ -20,6 +20,15 @@
 		--text-color: #e0e0e0;
 	}
 
+	:global(a) {
+		text-decoration: none;
+		color: var(--text-color);
+	}
+
+	:global(a:hover) {
+		color: rgb(170, 3, 248);
+	}
+
 	:global(body) {
 		font-family:Verdana,sans-serif;
 		margin:auto;

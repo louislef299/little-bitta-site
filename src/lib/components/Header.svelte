@@ -24,11 +24,6 @@
 		padding: 0.25rem;
 	}
 
-	a {
-		text-decoration: none;
-		color: var(--text-color);
-	}
-
 	.navigation a {
 		font-weight: 500;
 		padding: 0.5rem;
@@ -39,7 +34,6 @@
 
 	.navigation a:hover {
 		border-color: rgb(170, 3, 248);
-		color: rgb(170, 3, 248);
 	}
 
 	.navigation a:active {
