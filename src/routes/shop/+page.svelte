@@ -1,11 +1,13 @@
 <script>
+    import { addToCart } from '$lib/cart.svelte';
+
     var items = [
-        { name: "one", qty: 3, img: "/images/granola-generic.jpg"},
-        { name: "two", qty: 3, img: "/images/granola-generic.jpg"},
-        { name: "three", qty: 3, img: "/images/granola-generic.jpg"},
-        { name: "four", qty: 3, img: "/images/granola-generic.jpg"},
-        { name: "five", qty: 3, img: "/images/granola-generic.jpg"},
-        { name: "six", qty: 3, img: "/images/granola-generic.jpg"}
+        { id: "1", name: "one", price: 3, img: "/images/granola-generic.jpg"},
+        { id: "2", name: "two", price: 3, img: "/images/granola-generic.jpg"},
+        { id: "3", name: "three", price: 3, img: "/images/granola-generic.jpg"},
+        { id: "4", name: "four", price: 3, img: "/images/granola-generic.jpg"},
+        { id: "5", name: "five", price: 3, img: "/images/granola-generic.jpg"},
+        { id: "6", name: "six", price: 3, img: "/images/granola-generic.jpg"}
     ]
 </script>
 
@@ -30,7 +32,8 @@
 		<li>
             <img class="shop" alt="{item.name} image" src={item.img} />
             <br />
-            {item.name} x {item.qty}
+            {item.name} x {item.price}
+            <button type="button" onclick={() => addToCart(item)}>Add 2 Cart</button>
         </li>
 	{/each}
 </ul>
