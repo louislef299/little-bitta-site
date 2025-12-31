@@ -10,6 +10,10 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 1rem;
+		position: sticky;
+		top: 0;
+		z-index: 100;
+      	background-color: var(--bg-color);
 	}
 
 	h1 {
