@@ -59,11 +59,6 @@ export function updateQuantity(itemId: string, quantity: number) {
 	}
 }
 
-export function clearCart() {
-	cart.items = []
-	localStorage.removeItem('cart');
-}
-
 export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }

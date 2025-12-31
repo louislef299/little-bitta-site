@@ -1,5 +1,5 @@
 <script>
-	import { cart, clearCart, getCartTotal } from '$lib/cart.svelte';
+	import { cart, getCartTotal } from '$lib/cart.svelte';
 	import CartItem from '$lib/components/CartItem.svelte';
 
 	let total = $derived(getCartTotal());
@@ -58,7 +58,6 @@
 		<div class="cart-footer">
 			<span class="total">Total: ${total.toFixed(2)}</span>
             <button type="button">Buy</button>
-			<button type="button" onclick={clearCart}>Clear Cart</button>
 		</div>
 	{:else}
 		<div class="empty-cart">
