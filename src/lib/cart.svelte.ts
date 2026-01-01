@@ -41,6 +41,11 @@ export function removeFromCart(itemId: string) {
 	saveCart(cart.items);
 }
 
+export function emptyCart() {
+	cart.items = [];
+	localStorage.clear();
+}
+
 export function updateQuantity(itemId: string, quantity: number) {
 	const item = cart.items.find((i) => i.id === itemId);
 	if (item) {

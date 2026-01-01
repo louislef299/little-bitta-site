@@ -6,7 +6,7 @@
 <script lang="ts">
   import { loadScript } from "@paypal/paypal-js";
   import { onMount } from "svelte";
-  import { getItems } from '$lib/cart.svelte';
+  import { getItems, emptyCart } from '$lib/cart.svelte';
   import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
 
   onMount(async () => {
@@ -41,7 +41,7 @@
 
             if (result.status === 'COMPLETED') {
               alert(`Payment successful! Order ID: ${data.orderID}`);
-              // TODO: Clear cart after successful payment
+              emptyCart();
             } else {
               alert(`Payment status: ${result.status}`);
             }
