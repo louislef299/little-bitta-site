@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV } from '$env/static/private';
-import { getCartTotal } from '$lib/cart.svelte'
 
 // Get PayPal access token
 async function getPayPalAccessToken() {
@@ -24,49 +23,27 @@ async function getPayPalAccessToken() {
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { items } = await request.json();
-	const total = getCartTotal();
+	const { orderID } = await request.json();
+
+	// Get PayPal access token
 	const accessToken = await getPayPalAccessToken();
 
-	// Create PayPal order
+	// Capture the PayPal order
 	const url = PAYPAL_ENV === 'production'
-		? 'https://api-m.paypal.com/v2/checkout/orders'
-		: 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
+		? `https://api-m.paypal.com/v2/checkout/orders/${orderID}/capture`
+		: `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderID}/capture`;
 
 	const response = await fetch(url, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			'Authorization': `Bearer ${accessToken}`
-		},
-		body: JSON.stringify({
-			intent: 'CAPTURE',
-			purchase_units: [{
-				amount: {
-					currency_code: 'USD',
-					value: total.toFixed(2),
-					breakdown: {
-						item_total: {
-							currency_code: 'USD',
-							value: total.toFixed(2)
-						}
-					}
-				},
-				items: items.map((item: any) => ({
-					name: item.name,
-					quantity: item.quantity.toString(),
-					unit_amount: {
-						currency_code: 'USD',
-						value: item.price.toFixed(2)
-					}
-				}))
-			}]
-		})
+		}
 	});
 
-	const order = await response.json();
+	const captureData = await response.json();
 
-	console.log('Created PayPal order:', order.id);
+	console.log('Captured PayPal order:', orderID, captureData.status);
 
-	return json({ id: order.id });
+	return json(captureData);
 };

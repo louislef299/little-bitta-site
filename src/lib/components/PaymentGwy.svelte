@@ -7,11 +7,12 @@
   import { loadScript } from "@paypal/paypal-js";
   import { onMount } from "svelte";
   import { getItems } from '$lib/cart.svelte';
+  import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
 
   onMount(async () => {
     try {
       const paypal = await loadScript({
-        clientId: "AaVahctsdoWll9kbLmqaj3pCtOXdjUgLUGWk2NMYaZWZe778sbAZ23FY3m0ZxIysxYsGaPXSwiW3dZQx",
+        clientId: PUBLIC_PAYPAL_CLIENT_ID,
         components: "buttons",
         currency: "USD",
         enableFunding: ["venmo", "applepay"],
@@ -23,14 +24,27 @@
           createOrder: async function() {
             const response = await fetch("/api/order", {
               method: "POST",
-              body: JSON.stringify({ orders: getItems() }),
+              body: JSON.stringify({ items: getItems() }),
               headers: { "Content-Type": "application/json" }
             });
             const order = await response.json();
             return order.id;
           },
           onApprove: async function(data) {
-            alert(`Transaction completed for order ${data.orderID}`);
+            // Capture the payment
+            const response = await fetch("/api/capture", {
+              method: "POST",
+              body: JSON.stringify({ orderID: data.orderID }),
+              headers: { "Content-Type": "application/json" }
+            });
+            const result = await response.json();
+
+            if (result.status === 'COMPLETED') {
+              alert(`Payment successful! Order ID: ${data.orderID}`);
+              // TODO: Clear cart after successful payment
+            } else {
+              alert(`Payment status: ${result.status}`);
+            }
           },
           style: {
             tagline: false,
