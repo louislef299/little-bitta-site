@@ -1,18 +1,13 @@
+import { json } from '@sveltejs/kit';
 import { browser } from '$app/environment';
-
-type CartItem = {
-	id: string;
-	name: string;
-	price: number;
-	quantity: number;
-};
+import { type OrderItem } from '$lib/database';
 
 export const cart = $state({
 	items: loadCart()
 });
 
 // Load initial cart from localStorage (only in browser)
-function loadCart(): CartItem[] {
+function loadCart(): OrderItem[] {
 	if (browser) {
 		const saved = localStorage.getItem('cart');
 		if (saved) {
@@ -26,13 +21,13 @@ function loadCart(): CartItem[] {
 	return [];
 }
 
-function saveCart(items: CartItem[]) {
+function saveCart(items: OrderItem[]) {
 	if (browser) {
 		localStorage.setItem('cart', JSON.stringify(items));
 	}
 }
 
-export function addToCart(item: Omit<CartItem, 'quantity'>) {
+export function addToCart(item: Omit<OrderItem, 'quantity'>) {
 	const existing = cart.items.find((i) => i.id === item.id);
 	if (existing) {
 		existing.quantity++;
@@ -61,6 +56,10 @@ export function updateQuantity(itemId: string, quantity: number) {
 
 export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+export function getItems(): Response {
+	return json(cart.items)
 }
 
 export function getItemTotal() {

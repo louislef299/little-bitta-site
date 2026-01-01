@@ -1,6 +1,7 @@
 <script lang="ts">
   import { loadScript } from "@paypal/paypal-js";
   import { onMount } from "svelte";
+  import { getItems } from '$lib/cart.svelte';
 
   onMount(async () => {
     try {
@@ -15,8 +16,9 @@
       if (paypal && paypal.Buttons) {
         await paypal.Buttons({
           createOrder: async function() {
-            const response = await fetch("/api/create-order", {
+            const response = await fetch("/api/order", {
               method: "POST",
+              body: getItems().body,
               headers: { "Content-Type": "application/json" }
             });
             const order = await response.json();

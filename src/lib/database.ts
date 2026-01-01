@@ -20,10 +20,11 @@ type Order = {
 }
 
 // This is the actual granola relative to the Order
-type OrderItem = {
+export type OrderItem = {
     id: string
-    granola: string
+    name: string
     quantity: number
+    price: number
 }
 
 // This is the actual granola representation
@@ -49,13 +50,17 @@ export function getOrder(orderID:string) {
 	return db.get(orderID);
 }
 
-export function createOrder(c: Customer, g: [OrderItem]): string {
+export function createOrder(g: [OrderItem]): string {
     const orderID = crypto.randomUUID()
     const order: Order = {
         id: orderID,
         iteration: tempIter.id,
         items: g,
-        customer: c,
+        customer: {
+            id: crypto.randomUUID(),
+            name: "temp",
+            address: "temp",
+        },
         orderDate: new Date(),
         fulfillmentDate: null,
     }
