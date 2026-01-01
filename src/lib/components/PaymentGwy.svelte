@@ -1,3 +1,8 @@
+<!--
+  TODO: Ensure performance optimization is done before deployment
+  https://developer.paypal.com/sdk/js/performance/
+-->
+
 <script lang="ts">
   import { loadScript } from "@paypal/paypal-js";
   import { onMount } from "svelte";
