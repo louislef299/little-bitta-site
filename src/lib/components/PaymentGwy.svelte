@@ -15,7 +15,6 @@
       if (paypal && paypal.Buttons) {
         await paypal.Buttons({
           createOrder: async function() {
-            // Create order on your server
             const response = await fetch("/api/create-order", {
               method: "POST",
               headers: { "Content-Type": "application/json" }
@@ -24,9 +23,12 @@
             return order.id;
           },
           onApprove: async function(data) {
-            // Capture payment on your server
-            console.log("Payment approved:", data);
-          }
+            alert(`Transaction completed for order ${data.orderID}`);
+          },
+          style: {
+            tagline: false,
+            color: "blue",
+          },
         }).render('#paypal-button-container');
       }
     } catch (error) {
@@ -35,5 +37,4 @@
   });
 </script>
 
-<!-- Set up a container element for the button -->
 <div id="paypal-button-container"></div>
