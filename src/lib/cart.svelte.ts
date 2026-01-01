@@ -1,5 +1,11 @@
 import { browser } from '$app/environment';
-import { type OrderItem } from '$lib/database';
+
+export type OrderItem = {
+    id: string
+    name: string
+    quantity: number
+    price: number
+}
 
 export const cart = $state({
 	items: loadCart()
