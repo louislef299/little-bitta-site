@@ -1,4 +1,3 @@
-import { json } from '@sveltejs/kit';
 import { browser } from '$app/environment';
 import { type OrderItem } from '$lib/database';
 
@@ -58,8 +57,8 @@ export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
-export function getItems(): Response {
-	return json(cart.items)
+export function getItems(): OrderItem[] {
+	return cart.items
 }
 
 export function getItemTotal() {
