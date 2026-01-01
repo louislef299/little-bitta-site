@@ -40,8 +40,9 @@
             const result = await response.json();
 
             if (result.status === 'COMPLETED') {
-              alert(`Payment successful! Order ID: ${data.orderID}`);
               emptyCart();
+              // Redirect to order summary page
+              window.location.href = `/order-success?id=${data.orderID}`;
             } else {
               alert(`Payment status: ${result.status}`);
             }

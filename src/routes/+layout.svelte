@@ -9,6 +9,10 @@
 	<link rel="icon" href={logo} />
 </svelte:head>
 
+<Header />
+
+{@render children()}
+
 <style>
 	:global(:root) {
 		--bg-color: rgb(250, 249, 246);
@@ -62,7 +66,3 @@
 		line-height:1.5;
 	}
 </style>
-
-<Header />
-
-{@render children()}

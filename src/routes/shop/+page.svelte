@@ -13,6 +13,22 @@
     }
 </script>
 
+<h1>Granola Available</h1>
+<ul>
+	{#each items as item}
+		<li>
+            <img class="shop" alt="{item.name} image" src={item.img} />
+            <br />
+            {item.name} @ ${item.price}/lb
+            <br />
+            <button type="button" onclick={() => addToCart(item)}>
+                +Cart {#if getTotalForItem(item.id) > 0 }{getTotalForItem(item.id)}{/if}
+            </button>
+            <button type="button" onclick={() => reduceByOne(item.id)}>-Cart</button>
+        </li>
+	{/each}
+</ul>
+
 <style>
     .shop {
         width: 10rem;
@@ -31,19 +47,3 @@
         padding: 0.5rem 0.5rem;
     }
 </style>
-
-<h1>Granola Available</h1>
-<ul>
-	{#each items as item}
-		<li>
-            <img class="shop" alt="{item.name} image" src={item.img} />
-            <br />
-            {item.name} @ ${item.price}/lb
-            <br />
-            <button type="button" onclick={() => addToCart(item)}>
-                +Cart {#if getTotalForItem(item.id) > 0 }{getTotalForItem(item.id)}{/if}
-            </button>
-            <button type="button" onclick={() => reduceByOne(item.id)}>-Cart</button>
-        </li>
-	{/each}
-</ul>

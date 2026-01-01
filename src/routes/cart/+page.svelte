@@ -6,6 +6,26 @@
 	let total = $derived(getCartTotal());
 </script>
 
+<div class="cart-container">
+	{#if cart.items.length > 0}
+		<div class="cart-items">
+			{#each cart.items as item}
+				<CartItem id={item.id} name={item.name} quantity={item.quantity} price={item.price} />
+			{/each}
+		</div>
+
+		<div class="cart-footer">
+			<span class="total">Total: ${total.toFixed(2)}</span>
+            
+			<PaymentGwy />
+		</div>
+	{:else}
+		<div class="empty-cart">
+			<p>Your cart is empty, buy granola at the <a href="/shop">shop</a>!</p>
+		</div>
+	{/if}
+</div>
+
 <style>
 	.cart-container {
 		max-width: 800px;
@@ -42,23 +62,3 @@
 		color: var(--color-text-secondary, #666);
 	}
 </style>
-
-<div class="cart-container">
-	{#if cart.items.length > 0}
-		<div class="cart-items">
-			{#each cart.items as item}
-				<CartItem id={item.id} name={item.name} quantity={item.quantity} price={item.price} />
-			{/each}
-		</div>
-
-		<div class="cart-footer">
-			<span class="total">Total: ${total.toFixed(2)}</span>
-            
-			<PaymentGwy />
-		</div>
-	{:else}
-		<div class="empty-cart">
-			<p>Your cart is empty, buy granola at the <a href="/shop">shop</a>!</p>
-		</div>
-	{/if}
-</div>
