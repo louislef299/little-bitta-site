@@ -25,7 +25,7 @@ export async function setUpPayPalButton(sdkInstance: PayPalPaymentsInstance) {
         paymentSessionOptions,
     );
 
-    const paypalButton = document.querySelector("paypal-button-container");
+    const paypalButton = document.querySelector("#paypal-button-container");
     if (paypalButton) {
         paypalButton.removeAttribute("hidden");
         paypalButton.addEventListener("click", async () => {
@@ -39,7 +39,7 @@ export async function setUpPayPalButton(sdkInstance: PayPalPaymentsInstance) {
             }
         })
     } else {
-        console.error("Could not find button of class 'paypal-button-container'") 
+        console.error("Could not find button with id 'paypal-button-container'") 
     }
 }
 
