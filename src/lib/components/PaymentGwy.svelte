@@ -10,15 +10,18 @@
 </svelte:head>
 
 <script lang="ts">
-  import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
   import { setUpPayPalButton, captureOrder } from '$lib/paypal-ui.svelte'
   import { browser } from '$app/environment';
 
   // browser-side only
   async function onPayPalLoaded() {
     try {
+      // Fetch client token from our API endpoint
+      const response = await fetch('/api/paypal-client-token');
+      const { accessToken } = await response.json();
+
       const sdkInstance = await window.paypal.createInstance({
-        clientToken: PUBLIC_PAYPAL_CLIENT_ID,
+        clientToken: accessToken,
         components: ["paypal-payments", "venmo-payments"],
         pageType: "checkout",
       });
