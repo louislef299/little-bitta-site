@@ -46,8 +46,7 @@ export async function getPayPalClientToken() {
       : "https://api-m.sandbox.paypal.com/v1/oauth2/token";
 
   // Determine domain based on environment
-  const domain =
-    PAYPAL_ENV === "production" ? "littlebitta.com" : "localhost:5173";
+  const domain = PAYPAL_ENV === "production" ? "littlebitta.com" : "localhost";
 
   // TODO: Implement token caching/refresh logic
   // Currently generating fresh token on every request (15min expiry)
@@ -62,7 +61,7 @@ export async function getPayPalClientToken() {
     body: new URLSearchParams({
       grant_type: "client_credentials",
       response_type: "client_token",
-      "domains[]": domain,
+      //target_subject: domain,
     }).toString(),
   });
 
