@@ -2,7 +2,23 @@
 	import logo from '$lib/assets/purple-elephant.png';
 	import Toggle from '$lib/components/Toggle.svelte'
 	import { getItemTotal } from '$lib/cart.svelte'
+	import { ShoppingCart } from '@lucide/svelte';
 </script>
+
+<header>
+	<h1><a href="/">
+		<img class="logo" alt="Little Bitta Elephant" src={logo} />
+		<span class="lbg-text">Little Bitta Granola</span>
+	</a></h1>
+
+	<nav class="navigation">
+		<a href="/about">about</a>
+		<a href="/shop">shop</a>
+		<a href="/cart"><ShoppingCart />{#if getItemTotal() > 0}({getItemTotal()}){/if}</a>
+	</nav>
+
+	<Toggle />
+</header>
 
 <style>
 	header {
@@ -74,18 +90,3 @@
 	}
 
 </style>
-
-<header>
-	<h1><a href="/">
-		<img class="logo" alt="Little Bitta Elephant" src={logo} />
-		<span class="lbg-text">Little Bitta Granola</span>
-	</a></h1>
-
-	<nav class="navigation">
-		<a href="/about">about</a>
-		<a href="/shop">shop</a>
-		<a href="/cart">cart{#if getItemTotal() > 0}({getItemTotal()}){/if}</a>
-	</nav>
-
-	<Toggle />
-</header>
