@@ -1,80 +1,98 @@
 <!--
-  TODO: Ensure performance optimization is done before deployment
-  https://developer.paypal.com/sdk/js/performance/
+  PayPal Traditional SDK Integration
+  Supports: PayPal, Venmo, Apple Pay, Google Pay
+  https://developer.paypal.com/sdk/js/reference/
 -->
-<svelte:head>
-  {#if browser}
-    <script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" 
-      onload={() => { 
-        window.dispatchEvent(new Event('paypal-sdk-loaded'));
-      }}></script>
-  {/if}
-</svelte:head>
-
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { setUpPayPalButton, captureOrder } from '$lib/paypal-ui.svelte'
   import { browser } from '$app/environment';
+  import { loadScript } from "@paypal/paypal-js";
+  import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
+  import { getItems, emptyCart } from '$lib/cart.svelte';
 
-  let isPayPalLoaded = false;
+  let isInitialized = false;
 
-  // browser-side only
-  async function onPayPalLoaded() {
-    // Prevent multiple initializations
-    if (isPayPalLoaded) {
-      console.log('PayPal SDK already loaded, skipping...');
-      return;
-    }
+  // Create order on backend
+  async function createOrder() {
+    const response = await fetch("/api/order", {
+      method: "POST",
+      body: JSON.stringify({ items: getItems() }),
+      headers: { "Content-Type": "application/json" }
+    });
+    const order = await response.json();
+    console.log('Order created:', order.id);
+    return order.id;
+  }
+
+  // Capture payment after approval
+  async function onApprove(data: any) {
+    console.log('Payment approved:', data);
     
-    try {
-      isPayPalLoaded = true;
-      
-      // Fetch client token from our API endpoint
-      const response = await fetch('/api/paypal-client-token');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch client token: ${response.status}`);
-      }
-      
-      const { accessToken } = await response.json();
-      
-      if (!accessToken) {
-        throw new Error('Client token is missing from response');
-      }
+    const response = await fetch("/api/capture", {
+      method: "POST",
+      body: JSON.stringify({ orderID: data.orderID }),
+      headers: { "Content-Type": "application/json" }
+    });
+    const result = await response.json();
 
-      const sdkInstance = await window.paypal.createInstance({
-        clientToken: accessToken,
-        components: ["paypal-payments", "venmo-payments"],
-        pageType: "checkout",
-      });
-
-      const paymentMethods = await sdkInstance.findEligibleMethods({
-        currencyCode: "USD",
-      });
-
-      // Set up PayPal button if eligible
-      if (paymentMethods.isEligible("paypal")) {
-        setUpPayPalButton(sdkInstance);
-      }
-
-      const paypalCheckout = sdkInstance.createPayPalOneTimePaymentSession({
-          onApprove: captureOrder,
-      });
-    } catch (error) {
-      isPayPalLoaded = false; // Reset on error so retry is possible
-      console.error("Failed to load PayPal SDK:", error);
+    if (result.status === 'COMPLETED') {
+      console.log('Payment captured successfully');
+      emptyCart();
+      window.location.href = `/order-success?id=${data.orderID}`;
+    } else {
+      console.error('Payment capture returned status:', result.status);
+      alert(`Payment status: ${result.status}`);
     }
   }
 
-  // Wait for component to mount before loading PayPal
-  onMount(() => {
-    if (browser && window.paypal) {
-      onPayPalLoaded();
-    } else if (browser) {
-      // PayPal SDK hasn't loaded yet, set up listener
-      window.addEventListener('paypal-sdk-loaded', onPayPalLoaded);
-      return () => {
-        window.removeEventListener('paypal-sdk-loaded', onPayPalLoaded);
-      };
+  // Handle errors
+  function onError(err: any) {
+    console.error('PayPal error:', err);
+    alert('An error occurred with PayPal. Please try again.');
+  }
+
+  onMount(async () => {
+    if (!browser || isInitialized) return;
+
+    try {
+      console.log('Loading PayPal SDK...');
+      
+      // Load PayPal SDK with basic payment methods
+      // Note: Apple Pay and Google Pay require separate integration
+      // See: https://developer.paypal.com/docs/checkout/apm/apple-pay/
+      const paypal = await loadScript({
+        clientId: PUBLIC_PAYPAL_CLIENT_ID,
+        components: "buttons",
+        currency: "USD",
+        enableFunding: "venmo",
+        disableFunding: "paylater"
+      });
+
+      if (!paypal?.Buttons) {
+        throw new Error('PayPal SDK loaded but Buttons component is not available');
+      }
+
+      isInitialized = true;
+      console.log('PayPal SDK loaded successfully, rendering buttons...');
+
+      // Render all eligible payment buttons
+      // PayPal will automatically show Apple Pay/Google Pay if the device
+      // supports them
+      paypal.Buttons({
+        createOrder,
+        onApprove,
+        onError,
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        }
+      }).render('#paypal-button-container');
+
+    } catch (error) {
+      console.error('Failed to load PayPal SDK:', error);
+      alert('Failed to load PayPal. Please refresh the page.');
     }
   });
 </script>
