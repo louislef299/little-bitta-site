@@ -2,61 +2,43 @@
   TODO: Ensure performance optimization is done before deployment
   https://developer.paypal.com/sdk/js/performance/
 -->
+<svelte:head>
+  {#if browser}
+    <script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" 
+      onload={() => onPayPalLoaded()}></script>
+  {/if}
+</svelte:head>
 
 <script lang="ts">
-  import { loadScript } from "@paypal/paypal-js";
-  import { onMount } from "svelte";
-  import { getItems, emptyCart } from '$lib/cart.svelte';
   import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
+  import { setUpPayPalButton, captureOrder } from '$lib/paypal-ui.svelte'
+  import { browser } from '$app/environment';
 
-  onMount(async () => {
+  // browser-side only
+  async function onPayPalLoaded() {
     try {
-      const paypal = await loadScript({
-        clientId: PUBLIC_PAYPAL_CLIENT_ID,
-        components: "buttons",
-        currency: "USD",
-        enableFunding: ["venmo", "applepay"],
-        disableFunding: "paylater"
+      const sdkInstance = await window.paypal.createInstance({
+        clientToken: PUBLIC_PAYPAL_CLIENT_ID,
+        components: ["paypal-payments", "venmo-payments"],
+        pageType: "checkout",
       });
 
-      if (paypal && paypal.Buttons) {
-        await paypal.Buttons({
-          createOrder: async function() {
-            const response = await fetch("/api/order", {
-              method: "POST",
-              body: JSON.stringify({ items: getItems() }),
-              headers: { "Content-Type": "application/json" }
-            });
-            const order = await response.json();
-            return order.id;
-          },
-          onApprove: async function(data) {
-            // Capture the payment
-            const response = await fetch("/api/capture", {
-              method: "POST",
-              body: JSON.stringify({ orderID: data.orderID }),
-              headers: { "Content-Type": "application/json" }
-            });
-            const result = await response.json();
+      const paymentMethods = await sdkInstance.findEligibleMethods({
+        currencyCode: "USD",
+      });
 
-            if (result.status === 'COMPLETED') {
-              emptyCart();
-              // Redirect to order summary page
-              window.location.href = `/order-success?id=${data.orderID}`;
-            } else {
-              alert(`Payment status: ${result.status}`);
-            }
-          },
-          style: {
-            tagline: false,
-            color: "blue",
-          },
-        }).render('#paypal-button-container');
+      // Set up PayPal button if eligible
+      if (paymentMethods.isEligible("paypal")) {
+        setUpPayPalButton(sdkInstance);
       }
+
+      const paypalCheckout = sdkInstance.createPayPalOneTimePaymentSession({
+          onApprove: captureOrder,
+      });
     } catch (error) {
       console.error("Failed to load PayPal SDK:", error);
     }
-  });
+  }
 </script>
 
 <div id="paypal-button-container"></div>

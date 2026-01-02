@@ -14,10 +14,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const accessToken = await getPayPalAccessToken();
 
-	// Create PayPal order
-	const url = PAYPAL_ENV === 'production'
-		? 'https://api-m.paypal.com/v2/checkout/orders'
-		: 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
+		// Create PayPal order
+		const url = PAYPAL_ENV === 'production'
+			? 'https://api-m.paypal.com/v2/checkout/orders'
+			: 'https://api-m.sandbox.paypal.com/v2/checkout/orders';
 
 		const response = await fetch(url, {
 			method: 'POST',

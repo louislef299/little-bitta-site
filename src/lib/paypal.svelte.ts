@@ -1,4 +1,8 @@
-import { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_ENV } from '$env/static/private';
+import { 
+	PAYPAL_CLIENT_ID, 
+	PAYPAL_CLIENT_SECRET, 
+	PAYPAL_ENV 
+} from '$env/static/private';
 
 // Get PayPal access token
 // https://docs.paypal.ai/payments/methods/pay-links-buttons-api#how-it-works
