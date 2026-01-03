@@ -6,11 +6,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { loadScript } from "@paypal/paypal-js";
-  import { PUBLIC_PAYPAL_CLIENT_ID } from '$env/static/public';
   import { getItems, emptyCart } from '$lib/cart.svelte';
-
-  let isInitialized = false;
+  import { loadPayPalSDK } from '$lib/payments/paypal-sdk.svelte';
 
   // Create order on backend
   async function createOrder() {
@@ -52,28 +49,14 @@
   }
 
   onMount(async () => {
-    if (!browser || isInitialized) return;
+    if (!browser) return;
 
     try {
-      console.log('Loading PayPal SDK...');
-      
-      // Load PayPal SDK with basic payment methods
-      // Note: Apple Pay and Google Pay require separate integration
-      // See: https://developer.paypal.com/docs/checkout/apm/apple-pay/
-      const paypal = await loadScript({
-        clientId: PUBLIC_PAYPAL_CLIENT_ID,
-        components: "buttons",
-        currency: "USD",
-        enableFunding: "venmo",
-        disableFunding: "paylater"
-      });
-
+      // This will either return already-loaded SDK or load it now
+      const paypal = await loadPayPalSDK();
       if (!paypal?.Buttons) {
-        throw new Error('PayPal SDK loaded but Buttons component is not available');
+        throw new Error('PayPal Buttons not available');
       }
-
-      isInitialized = true;
-      console.log('PayPal SDK loaded successfully, rendering buttons...');
 
       // Render all eligible payment buttons
       // PayPal will automatically show Apple Pay/Google Pay if the device
@@ -89,10 +72,8 @@
           label: 'paypal'
         }
       }).render('#paypal-button-container');
-
     } catch (error) {
-      console.error('Failed to load PayPal SDK:', error);
-      alert('Failed to load PayPal. Please refresh the page.');
+      console.error('Failed to render PayPal buttons:', error);
     }
   });
 </script>

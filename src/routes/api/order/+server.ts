@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { PAYPAL_ENV } from '$env/static/private';
-import { getPayPalAccessToken } from '$lib/paypal.svelte';
+import { getPayPalAccessToken } from '$lib/payments/paypal-token.svelte';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {

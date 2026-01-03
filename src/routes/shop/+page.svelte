@@ -1,5 +1,7 @@
 <script lang="ts">
     import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart.svelte';
+    import { browser } from '$app/environment';
+    import { loadPayPalSDK } from '$lib/payments/paypal-sdk.svelte';
 
     var items = [
         { id: "1", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
@@ -10,6 +12,15 @@
 
     function reduceByOne(id: string) {
         updateQuantity(id, (getTotalForItem(id)-1));
+    }
+
+    // Opportunistically load PayPal SDK when browser is idle
+    if (browser) {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => loadPayPalSDK(), { timeout: 5000 });
+      } else {
+        setTimeout(() => loadPayPalSDK(), 1000);
+      }
     }
 </script>
 
