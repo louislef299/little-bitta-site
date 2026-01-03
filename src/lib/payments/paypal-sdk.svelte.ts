@@ -12,7 +12,10 @@ export function isPayPalSDKLoaded(): boolean {
 }
 
 export async function loadPayPalSDK() {
-  if (paypalInstance) return paypalInstance;
+  if (paypalInstance) {
+    console.debug("sdk already loaded")
+    return paypalInstance;
+  }
 
   try {
     // https://github.com/paypal/paypal-js/blob/main/packages/paypal-js/src/load-script.ts
@@ -24,6 +27,7 @@ export async function loadPayPalSDK() {
       disableFunding: "card,paylater"
     });
     paypalInstance = paypal;
+    console.debug("loaded paypal sdk!")
     return paypal;
   } catch (error) {
     console.error('Failed to load PayPal SDK:', error);
