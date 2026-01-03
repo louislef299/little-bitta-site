@@ -68,8 +68,9 @@
         style: {
           layout: 'vertical',
           color: 'gold',
-          shape: 'rect',
-          label: 'paypal'
+          shape: 'pill',
+          label: 'paypal',
+          tagline: false
         }
       }).render('#paypal-button-container');
     } catch (error) {

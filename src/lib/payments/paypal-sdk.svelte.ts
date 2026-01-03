@@ -15,12 +15,13 @@ export async function loadPayPalSDK() {
   if (paypalInstance) return paypalInstance;
 
   try {
+    // https://github.com/paypal/paypal-js/blob/main/packages/paypal-js/src/load-script.ts
     const paypal = await loadScript({
       clientId: PUBLIC_PAYPAL_CLIENT_ID,
       components: "buttons",
       currency: "USD",
       enableFunding: "venmo",
-      disableFunding: "paylater"
+      disableFunding: "card,paylater"
     });
     paypalInstance = paypal;
     return paypal;
