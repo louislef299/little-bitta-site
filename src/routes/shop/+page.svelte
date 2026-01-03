@@ -4,10 +4,10 @@
     import { loadPayPalSDK } from '$lib/payments/paypal-sdk.svelte';
 
     var items = [
-        { id: "1", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "2", name: "Pistachio", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "3", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "4", name: "Honey Bear", price: 12, img: "/images/granola-generic.jpg"}
+        { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
+        { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
+        { id: "3", name: "Honey Bear", price: 12, img: "/images/granola-generic.jpg"},
+        { id: "4", name: "Pistachio", price: 12, img: "/images/granola-generic.jpg"},
     ]
 
     function reduceByOne(id: string) {
@@ -19,7 +19,7 @@
       if ('requestIdleCallback' in window) {
         requestIdleCallback(() => loadPayPalSDK(), { timeout: 5000 });
       } else {
-        setTimeout(() => loadPayPalSDK(), 1000);
+        setTimeout(() => loadPayPalSDK(), 2000);
       }
     }
 </script>
