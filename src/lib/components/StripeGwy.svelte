@@ -1,21 +1,21 @@
 <!--
   Stripe Payment Integration
-  Supports: Apple Pay, Google Pay
+  Supports: Cards, Cash App, Apple Pay, Google Pay
   https://docs.stripe.com/payments/accept-a-payment
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { Elements, PaymentRequestButton } from 'svelte-stripe';
-  import { getItems, emptyCart, getCartTotalInCents } from '$lib/cart.svelte';
+  import { Elements, PaymentElement } from 'svelte-stripe';
+  import { getItems, emptyCart } from '$lib/cart.svelte';
   import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
-  import type { Stripe, PaymentRequest, PaymentRequestOptions } from '@stripe/stripe-js';
+  import type { Stripe, StripeElements } from '@stripe/stripe-js';
 
   let stripe: Stripe | null = null;
-  let paymentRequest: PaymentRequest | null = null;
-  let paymentRequestOptions: PaymentRequestOptions | null = null;
-  let canMakePayment = false;
+  let elements: StripeElements;
+  let clientSecret: string = '';
   let errorMessage = '';
+  let processing = false;
 
   // Create payment intent on backend
   async function createPaymentIntent() {
@@ -34,49 +34,60 @@
     return data.clientSecret;
   }
 
-  // Handle payment method (Apple Pay, Google Pay, etc.)
-  async function handlePaymentMethod(event: CustomEvent) {
-    try {
-      errorMessage = '';
-      const { paymentMethod, complete } = event.detail;
-      console.log('Payment method selected:', paymentMethod.type);
+  // Handle payment submission
+  async function handleSubmit(event: Event) {
+    event.preventDefault();
 
-      // Create payment intent
-      const clientSecret = await createPaymentIntent();
+    if (!stripe || !elements) {
+      console.error('Stripe not initialized');
+      return;
+    }
+
+    if (processing) return;
+
+    try {
+      processing = true;
+      errorMessage = '';
 
       // Confirm the payment
-      if (!stripe) throw new Error('Stripe not loaded');
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        errorMessage = submitError.message || 'Payment submission failed';
+        processing = false;
+        return;
+      }
 
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        { payment_method: paymentMethod.id },
-        { handleActions: false }
-      );
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/order-success`,
+        },
+        redirect: 'if_required', // Only redirect if needed (e.g., 3D Secure)
+      });
 
-      if (confirmError) {
-        console.error('Payment confirmation error:', confirmError);
-        complete('fail');
-        errorMessage = confirmError.message || 'Payment failed';
+      if (error) {
+        console.error('Payment confirmation error:', error);
+        errorMessage = error.message || 'Payment failed';
+        processing = false;
         return;
       }
 
       if (paymentIntent?.status === 'succeeded') {
         console.log('Payment succeeded!');
-        complete('success');
         emptyCart();
         window.location.href = `/order-success?id=${paymentIntent.id}`;
       } else if (paymentIntent?.status === 'requires_action') {
-        // Handle 3D Secure or other actions
-        complete('fail');
+        // This shouldn't happen with redirect: 'if_required', but handle it anyway
         errorMessage = 'Payment requires additional authentication';
+        processing = false;
       } else {
-        complete('fail');
-        errorMessage = `Payment status: ${paymentIntent?.status}`;
+        errorMessage = `Unexpected payment status: ${paymentIntent?.status}`;
+        processing = false;
       }
     } catch (error) {
       console.error('Payment error:', error);
       errorMessage = error instanceof Error ? error.message : 'Payment failed';
-      event.detail.complete('fail');
+      processing = false;
     }
   }
 
@@ -90,29 +101,8 @@
         throw new Error('Stripe SDK not available');
       }
 
-      // Create payment request for digital wallets
-      const total = getCartTotalInCents();
-      paymentRequestOptions = {
-        country: 'US',
-        currency: 'usd',
-        total: {
-          label: 'Little Bitta Granola',
-          amount: total,
-        },
-        requestPayerName: true,
-        requestPayerEmail: true,
-      };
-      paymentRequest = stripe.paymentRequest(paymentRequestOptions);
-
-      // Check if Apple Pay, Google Pay, etc. are available
-      const result = await paymentRequest.canMakePayment();
-      canMakePayment = !!result;
-
-      if (canMakePayment) {
-        console.log('Digital wallet available:', result);
-      } else {
-        console.log('No digital wallets available on this device');
-      }
+      // Create payment intent for this session
+      clientSecret = await createPaymentIntent();
     } catch (error) {
       console.error('Failed to initialize Stripe payment:', error);
       errorMessage = 'Failed to initialize payment method';
@@ -126,36 +116,64 @@
   </div>
 {/if}
 
-{#if stripe && paymentRequest && paymentRequestOptions && canMakePayment}
-  <Elements {stripe}>
-    <PaymentRequestButton
-      paymentRequest={paymentRequestOptions}
-      on:paymentmethod={handlePaymentMethod}
-    />
-  </Elements>
-{:else if stripe && !canMakePayment}
-  <div class="no-wallet-message">
-    Apple Pay / Google Pay not available on this device
+{#if stripe && clientSecret}
+  <form on:submit={handleSubmit}>
+    <Elements
+      {stripe}
+      {clientSecret}
+      bind:elements
+      theme="stripe"
+      variables={{ colorPrimary: '#aa03f8' }}
+      rules={{ '.Input': { border: '1px solid #e0e0e0' } }}
+    >
+      <PaymentElement
+        options={{
+          layout: {
+            type: 'tabs',
+            defaultCollapsed: false,
+          },
+          wallets: {
+            applePay: 'auto',
+            googlePay: 'auto',
+          },
+        }}
+      />
+    </Elements>
+
+    <button type="submit" disabled={processing} class="pay-button">
+      {processing ? 'Processing...' : 'Pay Now'}
+    </button>
+  </form>
+{:else if !errorMessage}
+  <div class="loading-message">
+    Loading payment options...
   </div>
 {/if}
 
 <style>
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
   .error-message {
     color: #dc3545;
     padding: 1rem;
-    margin: 1rem 0;
+    margin-bottom: 1rem;
     border: 1px solid #dc3545;
     border-radius: 4px;
     background-color: #f8d7da;
   }
 
-  .no-wallet-message {
-    color: #856404;
+  .loading-message {
+    color: #666;
     padding: 1rem;
-    margin: 1rem 0;
-    border: 1px solid #ffeaa7;
-    border-radius: 4px;
-    background-color: #fff3cd;
     text-align: center;
+    font-style: italic;
+  }
+
+  .pay-button:hover:not(:disabled) {
+    background-color: #8c02c9;
   }
 </style>

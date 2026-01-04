@@ -19,8 +19,13 @@
 			<span class="total">Total: ${total.toFixed(2)}</span>
 
 			<div class="payment-methods">
-				<StripeGwy />
 				<PayPalGwy />
+
+				<div class="or">
+					<p><b>or</b></p>
+				</div>
+
+				<StripeGwy />
 			</div>
 		</div>
 	{:else}
@@ -31,6 +36,10 @@
 </div>
 
 <style>
+	.or {
+		text-align: center;
+	}
+
 	.cart-container {
 		max-width: 800px;
 		margin: 2rem auto;
