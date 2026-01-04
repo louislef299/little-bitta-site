@@ -2,6 +2,7 @@
 	import { cart, getCartTotal } from '$lib/cart.svelte';
 	import CartItem from '$lib/components/CartItem.svelte';
     import PayPalGwy from '$lib/components/PayPalGwy.svelte';
+    import StripeGwy from '$lib/components/StripeGwy.svelte';
 
 	let total = $derived(getCartTotal());
 </script>
@@ -16,8 +17,11 @@
 
 		<div class="cart-footer">
 			<span class="total">Total: ${total.toFixed(2)}</span>
-            
-			<PayPalGwy />
+
+			<div class="payment-methods">
+				<StripeGwy />
+				<PayPalGwy />
+			</div>
 		</div>
 	{:else}
 		<div class="empty-cart">
@@ -54,6 +58,12 @@
 		font-size: 1.5rem;
 		font-weight: 600;
         flex: 1;
+	}
+
+	.payment-methods {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
 	.empty-cart {

@@ -2,6 +2,7 @@
     import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart.svelte';
     import { browser } from '$app/environment';
     import { loadPayPalSDK } from '$lib/payments/paypal-sdk.svelte';
+    import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
     var items = [
         { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
@@ -14,12 +15,18 @@
         updateQuantity(id, (getTotalForItem(id)-1));
     }
 
-    // Opportunistically load PayPal SDK when browser is idle
+    // Opportunistically load payment SDKs when browser is idle
     if (browser) {
       if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => loadPayPalSDK(), { timeout: 5000 });
+        requestIdleCallback(() => {
+          loadPayPalSDK();
+          loadStripeSDK();
+        }, { timeout: 5000 });
       } else {
-        setTimeout(() => loadPayPalSDK(), 2000);
+        setTimeout(() => {
+          loadPayPalSDK();
+          loadStripeSDK();
+        }, 2000);
       }
     }
 </script>
