@@ -7,7 +7,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { Elements, PaymentRequestButton } from 'svelte-stripe';
-  import { getItems, emptyCart } from '$lib/cart.svelte';
+  import { getItems, emptyCart, getCartTotalInCents } from '$lib/cart.svelte';
   import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
   import type { Stripe, PaymentRequest, PaymentRequestOptions } from '@stripe/stripe-js';
 
@@ -16,12 +16,6 @@
   let paymentRequestOptions: PaymentRequestOptions | null = null;
   let canMakePayment = false;
   let errorMessage = '';
-
-  // Calculate total amount in cents
-  function calculateTotal() {
-    const items = getItems();
-    return items.reduce((sum, item) => sum + (item.price * item.quantity * 100), 0);
-  }
 
   // Create payment intent on backend
   async function createPaymentIntent() {
@@ -97,7 +91,7 @@
       }
 
       // Create payment request for digital wallets
-      const total = calculateTotal();
+      const total = getCartTotalInCents();
       paymentRequestOptions = {
         country: 'US',
         currency: 'usd',

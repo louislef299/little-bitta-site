@@ -68,6 +68,11 @@ export function getCartTotal() {
 	return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
+export function getCartTotalInCents() {
+	const items = getItems();
+	return items.reduce((sum, item) => sum + (item.price * item.quantity * 100), 0);
+}
+
 export function getItems(): OrderItem[] {
 	return cart.items
 }
