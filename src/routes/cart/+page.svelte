@@ -58,7 +58,7 @@
 		padding-top: 1.5rem;
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
+		align-items: flex-start;
         gap: 0.5rem;
         margin-right: 0.5rem;
 	}
@@ -67,6 +67,11 @@
 		font-size: 1.5rem;
 		font-weight: 600;
         flex: 1;
+		position: sticky;
+		top: 5rem;
+		z-index: 10;
+		background-color: var(--bg-color);
+		padding: 0.5rem 0;
 	}
 
 	.payment-methods {
