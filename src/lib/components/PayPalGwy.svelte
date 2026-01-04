@@ -79,4 +79,17 @@
   });
 </script>
 
-<div id="paypal-button-container"></div>
+<div class="payment-container">
+  <div id="paypal-button-container"></div>
+</div>
+
+<style>
+  .payment-container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .payment-container :global(*) {
+    z-index: 1 !important;
+  }
+</style>

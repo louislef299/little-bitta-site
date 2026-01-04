@@ -117,33 +117,35 @@
 {/if}
 
 {#if stripe && clientSecret}
-  <form on:submit={handleSubmit}>
-    <Elements
-      {stripe}
-      {clientSecret}
-      bind:elements
-      theme="stripe"
-      variables={{ colorPrimary: '#aa03f8' }}
-      rules={{ '.Input': { border: '1px solid #e0e0e0' } }}
-    >
-      <PaymentElement
-        options={{
-          layout: {
-            type: 'tabs',
-            defaultCollapsed: false,
-          },
-          wallets: {
-            applePay: 'auto',
-            googlePay: 'auto',
-          },
-        }}
-      />
-    </Elements>
+  <div class="payment-container">
+    <form on:submit={handleSubmit}>
+      <Elements
+        {stripe}
+        {clientSecret}
+        bind:elements
+        theme="stripe"
+        variables={{ colorPrimary: '#aa03f8' }}
+        rules={{ '.Input': { border: '1px solid #e0e0e0' } }}
+      >
+        <PaymentElement
+          options={{
+            layout: {
+              type: 'tabs',
+              defaultCollapsed: false,
+            },
+            wallets: {
+              applePay: 'auto',
+              googlePay: 'auto',
+            },
+          }}
+        />
+      </Elements>
 
-    <button type="submit" disabled={processing} class="pay-button">
-      {processing ? 'Processing...' : 'Pay Now'}
-    </button>
-  </form>
+      <button type="submit" disabled={processing} class="pay-button">
+        {processing ? 'Processing...' : 'Pay Now'}
+      </button>
+    </form>
+  </div>
 {:else if !errorMessage}
   <div class="loading-message">
     Loading payment options...
@@ -151,6 +153,15 @@
 {/if}
 
 <style>
+  .payment-container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .payment-container :global(*) {
+    z-index: 1 !important;
+  }
+
   form {
     display: flex;
     flex-direction: column;
@@ -173,7 +184,26 @@
     font-style: italic;
   }
 
+  .pay-button {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background-color: #aa03f8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 0.5rem;
+  }
+
   .pay-button:hover:not(:disabled) {
     background-color: #8c02c9;
+  }
+
+  .pay-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
   }
 </style>
