@@ -1,7 +1,6 @@
 <script lang="ts">
     import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart.svelte';
     import { browser } from '$app/environment';
-    import { loadPayPalSDK } from '$lib/payments/paypal-sdk.svelte';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
     var items = [
@@ -19,12 +18,10 @@
     if (browser) {
       if ('requestIdleCallback' in window) {
         requestIdleCallback(() => {
-          loadPayPalSDK();
           loadStripeSDK();
         }, { timeout: 5000 });
       } else {
         setTimeout(() => {
-          loadPayPalSDK();
           loadStripeSDK();
         }, 2000);
       }
