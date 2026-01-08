@@ -22,18 +22,18 @@
         detectColorScheme();
     });
 
-    function updateColorScheme() {
-        var scheme = document.documentElement.getAttribute('data-theme')
-        if (scheme === null) {
-            console.log("got null scheme")
-        }
+    // function updateColorScheme() {
+    //     var scheme = document.documentElement.getAttribute('data-theme')
+    //     if (scheme === null) {
+    //         console.log("got null scheme")
+    //     }
 
-        if (scheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'light');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    }
+    //     if (scheme === 'dark') {
+    //         document.documentElement.setAttribute('data-theme', 'light');
+    //     } else {
+    //         document.documentElement.setAttribute('data-theme', 'dark');
+    //     }
+    // }
 </script>
 
 <!--

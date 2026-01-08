@@ -15,12 +15,10 @@ export const cart = $state({
 function loadCart(): OrderItem[] {
 	if (browser) {
 		const saved = localStorage.getItem('cart');
-		if (saved) {
-			try {
-				return JSON.parse(saved);
-			} catch (e) {
-				console.error('Failed to parse cart from localStorage', e);
-			}
+		try {
+			return JSON.parse(saved!);
+		} catch (e) {
+			console.error('Failed to parse cart from localStorage', e);
 		}
 	}
 	return [];
@@ -79,7 +77,7 @@ export function getItems(): OrderItem[] {
 
 export function getItemTotal() {
 	let total = 0;
-	for (let i of cart.items) {
+	for (const i of cart.items) {
 		total += i.quantity;
 	}
 	return total;
@@ -87,7 +85,7 @@ export function getItemTotal() {
 
 // Default return of 0 if item is not found
 export function getTotalForItem(id: string) {
-	for (let i of cart.items) {
+	for (const i of cart.items) {
 		if (i.id === id) {
 			return i.quantity;
 		}
