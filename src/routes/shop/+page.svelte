@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart.svelte';
+    import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart/cart.svelte';
+    import { getDrops } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
@@ -34,10 +35,9 @@
 <div>
     <label for="drops">Choose a drop date:</label>
     <select name="drops" id="drops" bind:value={selectedDrop}>
-    <option value="jan">January</option>
-    <option value="fed">February</option>
-    <option value="march">March</option>
-    <option value="april">April</option>
+    {#each getDrops() as drop}
+        <option value={drop.short}>{drop.long}</option>
+    {/each}
     </select>
 </div> 
 

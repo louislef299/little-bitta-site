@@ -1,7 +1,7 @@
 <script lang="ts">
 	import logo from '$lib/assets/purple-elephant.png';
 	import ToggleTheme from '$lib/components/Toggle.svelte'
-	import { getItemTotal } from '$lib/cart.svelte'
+	import { getItemTotal } from '$lib/cart/cart.svelte'
 	import { ShoppingCart } from '@lucide/svelte';
 </script>
 

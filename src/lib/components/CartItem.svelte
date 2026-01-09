@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Trash2 } from '@lucide/svelte';
-	import { removeFromCart } from '$lib/cart.svelte'
+	import { removeFromCart } from '$lib/cart/cart.svelte'
 
 	type Props = {
 		id: string;

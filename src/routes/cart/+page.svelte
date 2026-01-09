@@ -1,5 +1,5 @@
 <script>
-	import { cart, getCartTotal } from '$lib/cart.svelte';
+	import { cart, getCartTotal } from '$lib/cart/cart.svelte';
 	import CartItem from '$lib/components/CartItem.svelte';
     import StripeGwy from '$lib/components/StripeGwy.svelte';
 
