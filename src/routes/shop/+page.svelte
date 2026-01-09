@@ -1,10 +1,11 @@
 <script lang="ts">
     import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart/cart.svelte';
+    import type { Drop } from '$lib/cart/drops.svelte'
     import { getDrops } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
-    let selectedDrop = $state<string>("");
+    let selectedDrop = $state<string>(getDrops()[0].id)
     var items = [
         { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
         { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
@@ -36,7 +37,7 @@
     <label for="drops">Choose a drop date:</label>
     <select name="drops" id="drops" bind:value={selectedDrop}>
     {#each getDrops() as drop}
-        <option value={drop.short}>{drop.long}</option>
+        <option value={drop.id}>{drop.long}</option>
     {/each}
     </select>
 </div> 
@@ -54,7 +55,15 @@
                     ${item.price}/lb
                 </div>
                 <div class="button-group">
-                    <button type="button" onclick={() => addToCart(item)}>
+                    <button type="button" onclick={() => {
+                        const drop = getDrops().find(d => d.id === selectedDrop)!;
+                        addToCart({
+                            id: item.id,
+                            name: item.name,
+                            price: item.price,
+                            drop: drop,
+                        })
+                    }}>
                         +Cart {#if getTotalForItem(item.id) > 0}{getTotalForItem(item.id)}{/if}
                     </button>
                     <button type="button" onclick={() => reduceByOne(item.id)}>

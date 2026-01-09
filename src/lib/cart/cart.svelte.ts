@@ -1,10 +1,12 @@
 import { browser } from '$app/environment';
+import type { Drop } from '$lib/cart/drops.svelte';
 
 export type OrderItem = {
     id: string
     name: string
     quantity: number
     price: number
+	drop: Drop
 }
 
 export const cart = $state({
@@ -13,12 +15,23 @@ export const cart = $state({
 
 // Load initial cart from localStorage (only in browser)
 function loadCart(): OrderItem[] {
-	if (browser) {
+		if (browser) {
 		const saved = localStorage.getItem('cart');
+		if (!saved) return [];  // ← Add this: if nothing saved, return empty array
+		
 		try {
-			return JSON.parse(saved!);
+			const items = JSON.parse(saved);			
+			if (!Array.isArray(items)) {
+				console.warn('Cart data is not an array, clearing...');
+				localStorage.removeItem('cart');
+				return [];
+			};
+
+			return items;
 		} catch (e) {
 			console.error('Failed to parse cart from localStorage', e);
+			localStorage.removeItem('cart');
+			return [];
 		}
 	}
 	return [];

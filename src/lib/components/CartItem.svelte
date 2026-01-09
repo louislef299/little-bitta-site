@@ -1,18 +1,36 @@
 <script lang="ts">
 	import { Trash2 } from '@lucide/svelte';
 	import { removeFromCart } from '$lib/cart/cart.svelte'
+    import type { Drop } from '$lib/cart/drops.svelte';
 
 	type Props = {
 		id: string;
 		name: string;
 		quantity: number;
 		price: number;
+		drop: Drop;
 	};
 
-	let { id, name, quantity, price }: Props = $props();
+	let { id, name, quantity, price, drop }: Props = $props();
 
 	let itemTotal = $derived((price * quantity).toFixed(2));
 </script>
+
+<div class="cart-item">
+	<div class="item-info">
+		<span class="item-name">{name}</span>
+		<span class="item-subheader">Quantity: {quantity}</span>
+		<span class="item-subheader">Drop: {drop.long}</span>
+	</div>
+	<div class="item-price">
+		${itemTotal}
+	</div>
+	<div class="cart-remove">
+		<button type="button" onclick={() => removeFromCart(id)}>
+			<Trash2 size={18} />
+		</button>
+	</div>
+</div>
 
 <style>
 	.cart-item {
@@ -41,7 +59,7 @@
 		font-size: 1.1rem;
 	}
 
-	.item-quantity {
+	.item-subheader {
 		color: var(--color-text-secondary, #666);
 		font-size: 0.9rem;
 	}
@@ -68,18 +86,3 @@
 		transform: translateY(1px);
 	}
 </style>
-
-<div class="cart-item">
-	<div class="item-info">
-		<span class="item-name">{name}</span>
-		<span class="item-quantity">Quantity: {quantity}</span>
-	</div>
-	<div class="item-price">
-		${itemTotal}
-	</div>
-	<div class="cart-remove">
-		<button type="button" onclick={() => removeFromCart(id)}>
-			<Trash2 size={18} />
-		</button>
-	</div>
-</div>

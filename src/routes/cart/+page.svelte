@@ -10,7 +10,8 @@
 	{#if cart.items.length > 0}
 		<div class="cart-items">
 			{#each cart.items as item}
-				<CartItem id={item.id} name={item.name} quantity={item.quantity} price={item.price} />
+				<CartItem id={item.id} name={item.name} 
+					quantity={item.quantity} price={item.price} drop={item.drop} />
 			{/each}
 		</div>
 

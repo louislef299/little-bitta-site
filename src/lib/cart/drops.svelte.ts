@@ -1,29 +1,24 @@
 export type Drop = {
     id: string,
-    short: string,
     long: string,
 }
 
 export function getDrops(): Drop[] {
     return [
         {
-            id: "1",
-            short: "jan",
+            id: "jan",
             long: "January",
         },
         {
-            id: "2",
-            short: "fed",
+            id: "fed",
             long: "February",
         },
         {
-            id: "3",
-            short: "mar",
+            id: "mar",
             long: "March",
         },
         {
-            id: "4",
-            short: "apr",
+            id: "apr",
             long: "April",
         }
     ]
