@@ -5,6 +5,25 @@
 -->
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { Moon, Sun } from '@lucide/svelte';
+
+    let currentTheme = $state<boolean>(false);
+    let mounted = $state(false);
+
+    function isDark(): boolean {
+        var scheme = document.documentElement.getAttribute('data-theme')
+        return scheme === 'dark'
+    }
+
+	function changeTheme() {
+		if (isDark()) {
+			document.documentElement.setAttribute('data-theme', 'light');
+            currentTheme = false;
+		} else {
+			document.documentElement.setAttribute('data-theme', 'dark');
+            currentTheme = true;
+		}
+    }
 
     onMount(() => {
         const detectColorScheme = () => {
@@ -20,26 +39,39 @@
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectColorScheme);
 
         detectColorScheme();
+        mounted = true;
     });
-
-    // function updateColorScheme() {
-    //     var scheme = document.documentElement.getAttribute('data-theme')
-    //     if (scheme === null) {
-    //         console.log("got null scheme")
-    //     }
-
-    //     if (scheme === 'dark') {
-    //         document.documentElement.setAttribute('data-theme', 'light');
-    //     } else {
-    //         document.documentElement.setAttribute('data-theme', 'dark');
-    //     }
-    // }
 </script>
 
-<!--
-    Will need to come back and fix this, for now I'm just going to default to
-    the system theme for my needs lol. Don't want to sear my eyeballs while
-    working on this...
+<button type="button" onclick={changeTheme} class="theme-toggle">
+    {#if mounted}
+        {#if currentTheme}
+            <Sun />
+        {:else}
+            <Moon />
+        {/if}
+    {/if}
+</button>
 
-    <button onclick={updateColorScheme}>Theme Toggle</button>
--->
+<style>
+    .theme-toggle {
+        border: none;
+        padding: 0.5rem;
+        background: transparent;
+        color: var(--text-color);
+        cursor: pointer;
+        transition: color 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .theme-toggle:hover {
+        color: rgb(170, 3, 248);
+        background: transparent;
+    }
+
+    .theme-toggle:active {
+        transform: none;
+    }
+</style>
