@@ -3,6 +3,8 @@
 	import ToggleTheme from '$lib/components/Toggle.svelte'
 	import { getItemTotal } from '$lib/cart/cart.svelte'
 	import { ShoppingCart } from '@lucide/svelte';
+
+	let itemTotal = $derived(getItemTotal());
 </script>
 
 <header>
@@ -14,7 +16,7 @@
 	<nav class="navigation">
 		<a href="/about">about</a>
 		<a href="/shop">shop</a>
-		<a href="/cart"><ShoppingCart />{#if getItemTotal() > 0}({getItemTotal()}){/if}</a>
+		<a href="/cart"><ShoppingCart />{#if itemTotal > 0}({itemTotal}){/if}</a>
 		<ToggleTheme />
 	</nav>
 </header>
@@ -29,6 +31,11 @@
 		top: 0;
 		z-index: 100;
       	background-color: var(--bg-color);
+		/* Performance: GPU acceleration for smooth sticky positioning */
+		transform: translateZ(0);
+		will-change: transform;
+		/* Performance: Isolate rendering calculations */
+		contain: layout style paint;
 	}
 
 	h1 {

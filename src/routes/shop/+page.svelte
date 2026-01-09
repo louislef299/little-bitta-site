@@ -1,11 +1,11 @@
 <script lang="ts">
     import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart/cart.svelte';
-    import type { Drop } from '$lib/cart/drops.svelte'
-    import { getDrops } from '$lib/cart/drops.svelte'
+    import { getDrops, isDropAvailable } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
     let selectedDrop = $state<string>(getDrops()[0].id)
+    let isCurrentDropAvailable = $derived(isDropAvailable(selectedDrop))
     var items = [
         { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
         { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
@@ -40,6 +40,11 @@
         <option value={drop.id}>{drop.long}</option>
     {/each}
     </select>
+    {#if !isCurrentDropAvailable}
+        <p class="capacity-warning">
+            ⚠️ This drop is at capacity. Please select another drop date.
+        </p>
+    {/if}
 </div> 
 
 <ul>
@@ -55,15 +60,18 @@
                     ${item.price}/lb
                 </div>
                 <div class="button-group">
-                    <button type="button" onclick={() => {
-                        const drop = getDrops().find(d => d.id === selectedDrop)!;
-                        addToCart({
-                            id: item.id,
-                            name: item.name,
-                            price: item.price,
-                            drop: drop,
-                        })
-                    }}>
+                    <button 
+                        type="button" 
+                        disabled={!isCurrentDropAvailable}
+                        onclick={() => {
+                            const drop = getDrops().find(d => d.id === selectedDrop)!;
+                            addToCart({
+                                id: item.id,
+                                name: item.name,
+                                price: item.price,
+                                drop: drop,
+                            })
+                        }}>
                         +Cart {#if getTotalForItem(item.id) > 0}{getTotalForItem(item.id)}{/if}
                     </button>
                     <button type="button" onclick={() => reduceByOne(item.id)}>
@@ -99,6 +107,13 @@
         gap: 0.5rem;
     }
 
+    .capacity-warning {
+        color: #f59e0b;
+        font-weight: 500;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+
     ul {
       list-style: none;
       padding: 0;
@@ -117,5 +132,15 @@
 
     button {
         padding: 0.5rem 0.5rem;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #666;
+    }
+
+    button:disabled:hover {
+        background: #666;
     }
 </style>

@@ -1,3 +1,7 @@
+<script lang="ts">
+    import CapacityCard from '$lib/components/CapacityCard.svelte';
+</script>
+
 <h2>Granola Made <i>Right</i></h2>
 <p>
     Minnesota based, homemade, small-batch granola. With everything made
@@ -14,3 +18,11 @@
     will get back to you as soon as possible. We currently only operate in the
     Minnesota metro area.
 </p>
+
+<h2>Drop Availability</h2>
+<p>
+    We operate on a drop-based system. This means that every month, we have a
+    limited capacity of granola we can sell before we would get overwhelmed.
+    Thanks for understanding!
+</p>
+<CapacityCard />
