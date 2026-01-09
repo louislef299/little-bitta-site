@@ -3,6 +3,7 @@
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
 
+    let selectedDrop = $state<string>("");
     var items = [
         { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
         { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
@@ -29,6 +30,17 @@
 </script>
 
 <h1>Granola Available</h1>
+
+<div>
+    <label for="drops">Choose a drop date:</label>
+    <select name="drops" id="drops" bind:value={selectedDrop}>
+    <option value="jan">January</option>
+    <option value="fed">February</option>
+    <option value="march">March</option>
+    <option value="april">April</option>
+    </select>
+</div> 
+
 <ul>
 	{#each items as item}
 		<li>
