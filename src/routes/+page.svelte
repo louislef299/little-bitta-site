@@ -1,5 +1,8 @@
 <script lang="ts">
     import CapacityCard from '$lib/components/CapacityBar.svelte';
+    import { getCurrentDrop } from '$lib/cart/drops.svelte';
+
+    const currentDrop = getCurrentDrop();
 </script>
 
 <h2>Granola Made <i>Right</i></h2>
@@ -21,7 +24,7 @@
 
 <h2>Drop Availability</h2>
 
-<h3>January 2026</h3>
+<h3>{currentDrop.long} {currentDrop.year}</h3>
 <CapacityCard />
 
 <p>

@@ -1,34 +1,22 @@
 <script lang="ts">
     import type { Drop } from '$lib/cart/drops.svelte';
-    import { getDrops } from '$lib/cart/drops.svelte';
+    import { getCurrentDrop, getDropCapacity } from '$lib/cart/drops.svelte';
 
     type DropWithCapacity = Drop & {
         current: number;
         max: number;
     };
 
-    // For now, using mock data - you can replace this with real capacity data from your backend
-    function getDropsWithCapacity(): DropWithCapacity[] {
-        const drops = getDrops();
-        // Mock capacity data - replace with actual data source
-        const capacityData: Record<string, { current: number; max: number }> = {
-            jan: { current: 45, max: 50 },
-            fed: { current: 12, max: 50 },
-            mar: { current: 50, max: 50 },
-            apr: { current: 0, max: 50 },
-        };
-
-        return drops.map(drop => ({
-            ...drop,
-            ...capacityData[drop.id]
-        }));
-    }
+    const dropCapacity = $state(getDropCapacity(getCurrentDrop().id));
+    const dropPercentage: number = $derived((dropCapacity.current/dropCapacity.max) * 100);
+    const dropPercentageCSS: string = $derived(dropPercentage + "%")
 </script>
 
 <div class="capacity-bar">
     <div class="progress-container">
-        <div class="progress"></div>
+        <div class="progress" style="width: {dropPercentageCSS};"></div>
     </div>
+    <div class="capacity">{dropCapacity.current}/{dropCapacity.max}</div>
 </div>
 
 <style>
@@ -43,7 +31,6 @@
     }
 
     .progress {
-        width: 75%;
         height: 100%;
         background: linear-gradient(to right, #aa03f8, #0ea5e9);
         border-radius: 8px;
