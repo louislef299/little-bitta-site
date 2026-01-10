@@ -3,6 +3,7 @@
     import { getDrops, isDropAvailable } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
+    import CapacityBar from '$lib/components/CapacityBar.svelte';
 
     let selectedDrop = $state<string>(getDrops()[0].id)
     let isCurrentDropAvailable = $derived(isDropAvailable(selectedDrop))
@@ -34,12 +35,9 @@
 <h1>Granola Available</h1>
 
 <div>
-    <label for="drops">Choose a drop date:</label>
-    <select name="drops" id="drops" bind:value={selectedDrop}>
-    {#each getDrops() as drop}
-        <option value={drop.id}>{drop.long}</option>
-    {/each}
-    </select>
+    <h3>Currently shopping for drop: January 2026</h3>
+    <CapacityBar />
+
     {#if !isCurrentDropAvailable}
         <p class="capacity-warning">
             ⚠️ This drop is at capacity. Please select another drop date.

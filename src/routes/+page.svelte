@@ -1,5 +1,5 @@
 <script lang="ts">
-    import CapacityCard from '$lib/components/CapacityCard.svelte';
+    import CapacityCard from '$lib/components/CapacityBar.svelte';
 </script>
 
 <h2>Granola Made <i>Right</i></h2>
@@ -20,9 +20,12 @@
 </p>
 
 <h2>Drop Availability</h2>
+
+<h3>January 2026</h3>
+<CapacityCard />
+
 <p>
     We operate on a drop-based system. This means that every month, we have a
     limited capacity of granola we can sell before we would get overwhelmed.
     Thanks for understanding!
 </p>
-<CapacityCard />
