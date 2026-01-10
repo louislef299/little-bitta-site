@@ -1,3 +1,5 @@
+import { getItems } from "./cart.svelte";
+
 export type Drop = {
   id: string;
   long: string;
@@ -27,7 +29,13 @@ export function getDropCapacity(dropId: string): DropCapacity {
     apr: { current: 0, max: 50 },
   };
 
-  return capacityData[dropId] || { current: 0, max: 50 };
+  const cartItemTotal = getItems().reduce((sum, item) => sum + item.quantity, 0);
+
+  const currentCapacity = capacityData[dropId] || { current: 0, max: 50 };
+  return {
+    current: currentCapacity.current + cartItemTotal,
+    max: currentCapacity.max
+  };
 }
 
 export function isDropAvailable(dropId: string): boolean {

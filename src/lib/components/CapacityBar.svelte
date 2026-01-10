@@ -1,20 +1,13 @@
 <script lang="ts">
-    import type { Drop } from '$lib/cart/drops.svelte';
     import { getCurrentDrop, getDropCapacity } from '$lib/cart/drops.svelte';
 
-    type DropWithCapacity = Drop & {
-        current: number;
-        max: number;
-    };
-
-    const dropCapacity = $state(getDropCapacity(getCurrentDrop().id));
-    const dropPercentage: number = $derived((dropCapacity.current/dropCapacity.max) * 100);
-    const dropPercentageCSS: string = $derived(dropPercentage + "%")
+    const dropCapacity = $derived(getDropCapacity(getCurrentDrop().id));
+    const dropPercentage = $derived((dropCapacity.current / dropCapacity.max) * 100);
 </script>
 
 <div class="capacity-bar">
     <div class="progress-container">
-        <div class="progress" style="width: {dropPercentageCSS};"></div>
+        <div class="progress" style="width: {dropPercentage}%;"></div>
     </div>
     <div class="capacity">{dropCapacity.current}/{dropCapacity.max}</div>
 </div>
