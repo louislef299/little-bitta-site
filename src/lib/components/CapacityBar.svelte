@@ -25,7 +25,7 @@
 
     .progress {
         height: 100%;
-        background: linear-gradient(to right, #aa03f8, #0ea5e9);
+        background: linear-gradient(to right, #0ea5e9, #aa03f8);
         border-radius: 8px;
         transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         transform: translateZ(0);

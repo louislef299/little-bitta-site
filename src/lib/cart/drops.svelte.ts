@@ -23,7 +23,7 @@ export function getCurrentDrop(): Drop {
 export function getDropCapacity(dropId: string): DropCapacity {
   // This would eventually fetch from your database/API
   const capacityData: Record<string, DropCapacity> = {
-    jan: { current: 45, max: 50 },
+    jan: { current: 15, max: 50 },
     fed: { current: 12, max: 50 },
     mar: { current: 50, max: 50 },
     apr: { current: 0, max: 50 },
