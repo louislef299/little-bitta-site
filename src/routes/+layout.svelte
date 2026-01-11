@@ -17,11 +17,13 @@
 	:global(:root) {
 		--bg-color: rgb(250, 249, 246);
 		--text-color: #333;
+		--bg-progress: rgba(0, 0, 0, 0.08);
 	}
 
 	:global([data-theme="dark"]) {
 		--bg-color: #1a1a1a;
 		--text-color: #e0e0e0;
+		--bg-progress: rgb(242, 241, 238);
 	}
 
 	:global(a) {

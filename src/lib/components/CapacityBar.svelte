@@ -25,7 +25,7 @@
         width: 100%;
         max-width: 400px;
         height: 12px;
-        background: rgba(0, 0, 0, 0.08);
+        background: var(--bg-progress);
         border-radius: 8px;
         overflow: hidden;
         transform: translateZ(0);
