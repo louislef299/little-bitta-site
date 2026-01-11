@@ -1,6 +1,9 @@
 import { browser } from '$app/environment';
 import type { Drop } from '$lib/cart/drops.svelte';
 
+// Cart schema version - increment when OrderItem or Drop types change
+const CART_SCHEMA_VERSION = '2.0.0';
+
 // Product catalog type
 export type Product = {
 	id: string;
@@ -9,7 +12,7 @@ export type Product = {
 	image_path: string;
 	description?: string;
 	active?: boolean;
-	stock_quantity?: number; // For inventory tracking
+	stock_quantity?: number;
 };
 
 export type OrderItem = {
@@ -18,7 +21,7 @@ export type OrderItem = {
     quantity: number;
     price: number;
 	drop: Drop;
-	image_path?: string;         // Product image
+	image_path?: string;
 }
 
 export const cart = $state({
@@ -27,17 +30,32 @@ export const cart = $state({
 
 // Load initial cart from localStorage (only in browser)
 function loadCart(): OrderItem[] {
-		if (browser) {
+	console.log('[Cart] loadCart() called, browser:', browser);
+	if (browser) {
+		const savedVersion = localStorage.getItem('cart_version');
 		const saved = localStorage.getItem('cart');
-		if (!saved) return [];  // ← Add this: if nothing saved, return empty array
-		
+		console.log('[Cart] Saved version:', savedVersion, 'Current:', CART_SCHEMA_VERSION);
+
+		// Check version compatibility
+		if (savedVersion !== CART_SCHEMA_VERSION) {
+			if (savedVersion) {
+				console.log(`[Cart] Schema updated from v${savedVersion} to v${CART_SCHEMA_VERSION}, clearing cart`);
+			} else {
+				console.log(`[Cart] No version found, initializing with v${CART_SCHEMA_VERSION}`);
+			}
+			localStorage.removeItem('cart');
+			localStorage.setItem('cart_version', CART_SCHEMA_VERSION);
+			return [];
+		}
+
+		if (!saved) return [];
 		try {
-			const items = JSON.parse(saved);			
+			const items = JSON.parse(saved);
 			if (!Array.isArray(items)) {
 				console.warn('Cart data is not an array, clearing...');
 				localStorage.removeItem('cart');
 				return [];
-			};
+			}
 
 			return items;
 		} catch (e) {
@@ -52,6 +70,7 @@ function loadCart(): OrderItem[] {
 function saveCart(items: OrderItem[]) {
 	if (browser) {
 		localStorage.setItem('cart', JSON.stringify(items));
+		localStorage.setItem('cart_version', CART_SCHEMA_VERSION);
 	}
 }
 
