@@ -1,4 +1,4 @@
-import { getItems } from "./cart.svelte";
+import { cart } from "$lib/cart/cart.svelte";
 
 // Drop status types for limited release e-commerce
 export type DropStatus = 'upcoming' | 'active' | 'sold_out' | 'ended';
@@ -42,7 +42,7 @@ export function getDropCapacity(dropId: string): DropCapacity {
   };
 
   // Calculate items currently allocated (reserved) in cart
-  const cartItemTotal = getItems().reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemTotal = cart.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const baseCapacity = dbCapacityData[dropId] || { current: 0, max: 50 };
   const allocated = cartItemTotal; // Items in cart (not yet purchased)

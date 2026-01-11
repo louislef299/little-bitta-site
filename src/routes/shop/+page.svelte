@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { addToCart, getTotalForItem, updateQuantity } from '$lib/cart/cart.svelte';
     import { 
-        getCurrentDrop, isDropAvailable, getDropCapacity,
+        addToCart, getTotalForItem, updateQuantity, getItems 
+    } from '$lib/cart/cart.svelte';
+    import { 
+        getCurrentDrop, isDropAvailable, getDropCapacity
     } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';

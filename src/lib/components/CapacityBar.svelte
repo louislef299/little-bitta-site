@@ -1,12 +1,16 @@
 <script lang="ts">
-    import type { DropCapacity } from '$lib/cart/drops.svelte';
+    import { cart } from '$lib/cart/cart.svelte'
+    import { getCurrentDrop, getDropCapacity } from '$lib/cart/drops.svelte';
 
-    interface Props {
-        capacity: DropCapacity;
-    }
-
-    let { capacity }: Props = $props();
-    const dropPercentage = $derived((capacity.current / capacity.max) * 100);
+    const capacity = getDropCapacity(getCurrentDrop().id);
+    const currentCapacity = $derived.by(() => {
+        let cap = 0;
+        cart.items.forEach(item => {
+            cap += item.quantity;
+        });
+        return cap
+    });
+    const dropPercentage = $derived(((currentCapacity + capacity.current) / capacity.max) * 100);
     $effect(() => console.log("Drop Percentage:" + dropPercentage))
 </script>
 
@@ -14,7 +18,7 @@
     <div class="progress-container">
         <div class="progress" style="width: {dropPercentage}%;"></div>
     </div>
-    <div class="capacity">{capacity.current}/{capacity.max}</div>
+    <div class="capacity">{currentCapacity + capacity.current}/{capacity.max}</div>
 </div>
 
 <style>

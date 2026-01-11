@@ -1,7 +1,7 @@
 <script lang="ts">
     import CapacityCard from '$lib/components/CapacityBar.svelte';
     import { getCurrentDrop, getDropCapacity } from '$lib/cart/drops.svelte';
-    import { cart } from '$lib/cart/cart.svelte';
+    import { getItems } from '$lib/cart/cart.svelte';
 
     const currentDrop = getCurrentDrop();
     const dropCapacity = $derived(getDropCapacity(currentDrop.id));
