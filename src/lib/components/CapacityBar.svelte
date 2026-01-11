@@ -11,7 +11,6 @@
         return cap
     });
     const dropPercentage = $derived(((currentCapacity + capacity.current) / capacity.max) * 100);
-    $effect(() => console.log("Drop Percentage:" + dropPercentage))
 </script>
 
 <div class="capacity-bar">

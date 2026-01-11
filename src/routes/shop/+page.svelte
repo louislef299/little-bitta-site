@@ -1,9 +1,9 @@
 <script lang="ts">
     import { 
-        addToCart, getTotalForItem, updateQuantity, getItems 
+        addToCart, getTotalForItem, updateQuantity 
     } from '$lib/cart/cart.svelte';
     import { 
-        getCurrentDrop, isDropAvailable, getDropCapacity
+        getCurrentDrop, isDropAvailable
     } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
@@ -11,7 +11,6 @@
 
     let currentDrop = getCurrentDrop();
     let isCurrentDropAvailable = $derived(isDropAvailable(currentDrop.id));
-    const dropCapacity = $derived(getDropCapacity(currentDrop.id));
 
     var items = [
         { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
@@ -38,15 +37,15 @@
     }
 </script>
 
-<h1>Granola Available</h1>
+<h1>Granola {#if isCurrentDropAvailable} Available {:else} Unavailable 😭 {/if}</h1>
 
 <div>
     <h3>Currently shopping for drop: {currentDrop.long} {currentDrop.year}</h3>
-    <CapacityBar capacity={dropCapacity} />
+    <CapacityBar />
 
     {#if !isCurrentDropAvailable}
         <p class="capacity-warning">
-            ⚠️ This drop is at capacity. Please select another drop date.
+            ⚠️ This drop is at capacity.
         </p>
     {/if}
 </div> 

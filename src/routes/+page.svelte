@@ -1,10 +1,8 @@
 <script lang="ts">
     import CapacityCard from '$lib/components/CapacityBar.svelte';
-    import { getCurrentDrop, getDropCapacity } from '$lib/cart/drops.svelte';
-    import { getItems } from '$lib/cart/cart.svelte';
+    import { getCurrentDrop } from '$lib/cart/drops.svelte';
 
     const currentDrop = getCurrentDrop();
-    const dropCapacity = $derived(getDropCapacity(currentDrop.id));
 </script>
 
 <h2>Granola Made <i>Right</i></h2>
@@ -27,7 +25,7 @@
 <h2>Limited Drop Availability</h2>
 
 <h3>{currentDrop.long} {currentDrop.year}</h3>
-<CapacityCard capacity={dropCapacity} />
+<CapacityCard />
 
 <p>
     We operate on a limited drop-based system. This means that every month, we
