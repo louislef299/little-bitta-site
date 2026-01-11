@@ -2,7 +2,7 @@ import { browser } from '$app/environment';
 import type { Drop } from '$lib/cart/drops.svelte';
 
 // Cart schema version - increment when OrderItem or Drop types change
-const CART_SCHEMA_VERSION = '2.0.0';
+const CART_SCHEMA_VERSION = '1.0.0';
 
 // Product catalog type
 export type Product = {
