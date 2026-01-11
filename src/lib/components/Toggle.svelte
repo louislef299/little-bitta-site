@@ -28,10 +28,10 @@
     onMount(() => {
         const detectColorScheme = () => {
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                console.log('User prefers dark mode');
+                console.debug('[Toggle] User prefers dark mode');
                 document.documentElement.setAttribute('data-theme', 'dark');
             } else {
-                console.log('User prefers light mode');
+                console.debug('[Toggle] User prefers light mode');
                 document.documentElement.setAttribute('data-theme', 'light');
             }
         }

@@ -14,20 +14,20 @@ export function isStripeSDKLoaded(): boolean {
 
 export async function loadStripeSDK() {
   if (stripeInstance) {
-    console.debug("Stripe SDK already loaded")
+    console.debug("[Stripe] SDK already loaded")
     return stripeInstance;
   }
 
   try {
     const stripe = await loadStripe(PUBLIC_STRIPE_KEY);
     if (!stripe) {
-      throw new Error('Failed to load Stripe SDK');
+      throw new Error('[Stripe] Failed to load SDK');
     }
     stripeInstance = stripe;
-    console.debug("Loaded Stripe SDK!")
+    console.debug("[Stripe] Loaded SDK!")
     return stripe;
   } catch (error) {
-    console.error('Failed to load Stripe SDK:', error);
+    console.error('[Stripe] Failed to load SDK:', error);
     throw error;
   }
 }

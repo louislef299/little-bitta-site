@@ -30,18 +30,18 @@ export const cart = $state({
 
 // Load initial cart from localStorage (only in browser)
 function loadCart(): OrderItem[] {
-	console.log('[Cart] loadCart() called, browser:', browser);
+	console.debug('[Cart] loadCart() called, browser:', browser);
 	if (browser) {
 		const savedVersion = localStorage.getItem('cart_version');
 		const saved = localStorage.getItem('cart');
-		console.log('[Cart] Saved version:', savedVersion, 'Current:', CART_SCHEMA_VERSION);
+		console.debug('[Cart] Saved version:', savedVersion, 'Current:', CART_SCHEMA_VERSION);
 
 		// Check version compatibility
 		if (savedVersion !== CART_SCHEMA_VERSION) {
 			if (savedVersion) {
-				console.log(`[Cart] Schema updated from v${savedVersion} to v${CART_SCHEMA_VERSION}, clearing cart`);
+				console.debug(`[Cart] Schema updated from v${savedVersion} to v${CART_SCHEMA_VERSION}, clearing cart`);
 			} else {
-				console.log(`[Cart] No version found, initializing with v${CART_SCHEMA_VERSION}`);
+				console.debug(`[Cart] No version found, initializing with v${CART_SCHEMA_VERSION}`);
 			}
 			localStorage.removeItem('cart');
 			localStorage.setItem('cart_version', CART_SCHEMA_VERSION);
