@@ -1,12 +1,24 @@
 import { browser } from '$app/environment';
 import type { Drop } from '$lib/cart/drops.svelte';
 
+// Product catalog type
+export type Product = {
+	id: string;
+	name: string;
+	price: number;
+	image_path: string;
+	description?: string;
+	active?: boolean;
+	stock_quantity?: number; // For inventory tracking
+};
+
 export type OrderItem = {
-    id: string
-    name: string
-    quantity: number
-    price: number
-	drop: Drop
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+	drop: Drop;
+	image_path?: string;         // Product image
 }
 
 export const cart = $state({
