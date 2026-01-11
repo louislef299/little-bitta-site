@@ -22,13 +22,15 @@
     Minnesota metro area.
 </p>
 
-<h2>Drop Availability</h2>
+<h2>Limited Drop Availability</h2>
 
 <h3>{currentDrop.long} {currentDrop.year}</h3>
 <CapacityCard />
 
 <p>
-    We operate on a drop-based system. This means that every month, we have a
-    limited capacity of granola we can sell before we would get overwhelmed.
-    Thanks for understanding!
+    We operate on a limited drop-based system. This means that every month, we
+    have a limited capacity of granola we can sell before we would get
+    overwhelmed. Once we sell out for a drop period(typically one month), you
+    have to wait until the next drop period opens. We hope to improve this user
+    experience in the future. Thanks for understanding!
 </p>
