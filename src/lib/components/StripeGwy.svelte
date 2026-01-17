@@ -16,6 +16,7 @@
     let actions: LoadActionsSuccess | null = null;
     let errorMessage = $state('');
     let stripeTotal: string = $state("");
+    let email: string = $state("");
 
     async function fetchClientSecret() {
       const response = await fetch("/api/stripe/checkout-session", {
@@ -48,6 +49,16 @@
       const emailElement = (checkout as any).createEmailElement();
       emailElement.mount('#email-element');
 
+      emailElement.on('change', (event: any) => {
+        // The element might auto-sync, but capture the value if needed
+        if (event.value?.email) {
+          email = event.value.email;
+        }
+        if (event.error) {
+          errorMessage = event.error.message;
+        }
+      });
+
       checkout.loadActions().then(function(result) {
         if (result.type === 'success') {
           // Use the actions object to interact with the Checkout Session
@@ -60,6 +71,13 @@
 
     async function handlePayment() {
       if (!actions) return;
+      
+      const session = actions.getSession();
+      console.debug('Session email:', session.email);
+      if (!session.email && email) {
+        await actions.updateEmail(email);
+      }
+    
       errorMessage = '';
       const result = await actions.confirm();
       if (result.type === 'error') {

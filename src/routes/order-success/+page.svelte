@@ -1,7 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { emptyCart } from '$lib/cart/cart.svelte';
+  import { onMount } from 'svelte';
 
   const orderID = $derived(page.url.searchParams.get('id') || '');
+
+  onMount(() => {
+    emptyCart();
+  })
 </script>
 
 <div class="order-success">
