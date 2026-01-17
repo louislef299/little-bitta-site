@@ -11,10 +11,11 @@
     import { onMount } from 'svelte';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import { getItems } from '$lib/cart/cart.svelte';
+    import type { LoadActionsSuccess } from '@stripe/stripe-js';
 
-    let actions: any = null;
+    let actions: LoadActionsSuccess | null = null;
     let errorMessage = $state('');
-    let stripeTotal: string = $state("")
+    let stripeTotal: string = $state("");
 
     async function fetchClientSecret() {
       const response = await fetch("/api/stripe/checkout-session", {
@@ -43,6 +44,10 @@
       });
       paymentElement.mount('#payment-element');
 
+      // the clover API method isn't typed in @stripe/stripe-js
+      const emailElement = (checkout as any).createEmailElement();
+      emailElement.mount('#email-element');
+
       checkout.loadActions().then(function(result) {
         if (result.type === 'success') {
           // Use the actions object to interact with the Checkout Session
@@ -56,7 +61,6 @@
     async function handlePayment() {
       if (!actions) return;
       errorMessage = '';
-
       const result = await actions.confirm();
       if (result.type === 'error') {
         errorMessage = result.error.message;
@@ -74,6 +78,8 @@
   </div>
 
   <form id="payment-form">
+    <div id="email-element"></div>
+    <div id="payment-method">Payment Method</div>
     <div id="payment-element">
       <!--Stripe.js injects the Payment Element-->
     </div>
@@ -96,6 +102,11 @@
 
   #payment-form {
     margin-left: auto;
+  }
+
+  #payment-method {
+    padding-top: 1em;
+    padding-bottom: 1em;
   }
 
   #submit {
