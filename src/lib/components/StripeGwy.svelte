@@ -12,6 +12,10 @@
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import { getItems } from '$lib/cart/cart.svelte';
 
+    let actions: any = null;
+    let errorMessage = $state('');
+    let stripeTotal: string = $state("")
+
     async function fetchClientSecret() {
       const response = await fetch("/api/stripe/checkout-session", {
         method: "POST",
@@ -25,38 +29,88 @@
     onMount(async () => {
       // Access the global Stripe loaded from script tag
       const stripe = await loadStripeInstance();
-      const cs = await fetchClientSecret();
       const checkout = await stripe.initCheckout({ 
-        clientSecret: cs,
+        clientSecret: fetchClientSecret(),
       });
       const paymentElement = checkout.createPaymentElement({
         layout: "tabs",
+        // https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
+        // todo: https://docs.stripe.com/payments/paypal
         paymentMethodOrder: [
           'apple_pay', 'google_pay', 'amazon_pay', 
-          'cash_app_pay', 'card', 'klarna',
+          'card', 'cashapp', 'klarna',
         ]
       });
       paymentElement.mount('#payment-element');
+
+      checkout.loadActions().then(function(result) {
+        if (result.type === 'success') {
+          // Use the actions object to interact with the Checkout Session
+          actions = result.actions;
+          var session = actions.getSession();
+          stripeTotal = session.total.total.amount;
+        }
+      })
     });
+
+    async function handlePayment() {
+      if (!actions) return;
+      errorMessage = '';
+
+      const result = await actions.confirm();
+      if (result.type === 'error') {
+        errorMessage = result.error.message;
+      }
+    }
   </script>
 
 <div class="stripe-checkout">
+  <div id="calculated-total">
+    {#if stripeTotal !== ""}
+      <h4>Total: {stripeTotal}</h4>
+    {:else}
+      <h4>Calculating...</h4>
+    {/if}
+  </div>
+
   <form id="payment-form">
-    <h4>Payment</h4>
     <div id="payment-element">
       <!--Stripe.js injects the Payment Element-->
     </div>
-    <button id="submit">
+    <button id="submit" onclick={handlePayment}>
       <div class="spinner hidden" id="spinner"></div>
       <span id="button-text">Pay now</span>
     </button>
-    <div id="payment-message" class="hidden"></div>
+    {#if errorMessage}
+      <div id="payment-message">{errorMessage}</div>
+    {/if}
   </form>
 </div>
 
 <style>
+  .stripe-checkout {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  #payment-form {
+    margin-left: auto;
+  }
+
   #submit {
     padding: 1em;
     margin-top: 1rem;
   }
+
+  #calculated-total {
+		font-size: 1.5rem;
+		font-weight: 600;
+    flex: 1;
+		position: sticky;
+		top: 5rem;
+		z-index: 10;
+		background-color: var(--bg-color);
+		padding: 0.5rem 0;
+	}
 </style>

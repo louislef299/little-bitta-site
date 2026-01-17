@@ -11,29 +11,25 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const { items } = await request.json();
 
-    // Calculate total from items (in cents)
-    const amount = items.reduce((sum: number, item: any) => {
-      return sum + (item.price * item.quantity * 100);
-    }, 0);
+    // Build line_items from cart items
+    const line_items = items.map((item: any) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.name,
+        },
+        unit_amount: item.price * 100, // Convert to cents
+      },
+      quantity: item.quantity,
+    }));
 
-    console.log('Creating checkout session for items:', items, 'Amount (cents):', amount);
+    console.log('Creating checkout session for items:', items);
 
     // Create Stripe Checkout Session
     // https://docs.stripe.com/api/checkout/sessions/create
     const session = await stripe.checkout.sessions.create({
       ui_mode: 'custom',
-      line_items: [
-        {
-          "price_data" : {
-              "currency" : "usd",
-              "product_data":{
-                  "name": "Generic Granola"
-              },
-              "unit_amount": 1200,
-          },
-          "quantity": 1
-        }
-      ],
+      line_items,
       mode: "payment",
       return_url: "http://localhost:5173/order-success?session_id={CHECKOUT_SESSION_ID}",
     });
