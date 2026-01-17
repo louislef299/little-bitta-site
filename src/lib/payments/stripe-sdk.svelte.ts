@@ -4,15 +4,11 @@ import type { Stripe } from "@stripe/stripe-js";
 
 let stripeInstance = $state<Stripe | null>(null);
 
-export function getStripeInstance() {
-  return stripeInstance;
-}
-
 export function isStripeSDKLoaded(): boolean {
   return stripeInstance != null;
 }
 
-export async function loadStripeSDK() {
+export async function loadStripeInstance() {
   if (stripeInstance) {
     console.debug("[Stripe] SDK already loaded")
     return stripeInstance;

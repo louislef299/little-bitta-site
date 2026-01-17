@@ -6,7 +6,7 @@
         getCurrentDrop, isDropAvailable
     } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
-    import { loadStripeSDK } from '$lib/payments/stripe-sdk.svelte';
+    import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import CapacityBar from '$lib/components/CapacityBar.svelte';
 
     let currentDrop = getCurrentDrop();
@@ -27,11 +27,11 @@
     if (browser) {
       if ('requestIdleCallback' in window) {
         requestIdleCallback(() => {
-          loadStripeSDK();
+          loadStripeInstance();
         }, { timeout: 5000 });
       } else {
         setTimeout(() => {
-          loadStripeSDK();
+          loadStripeInstance();
         }, 2000);
       }
     }

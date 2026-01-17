@@ -21,21 +21,21 @@ export const POST: RequestHandler = async ({ request }) => {
     // Create Stripe Checkout Session
     // https://docs.stripe.com/api/checkout/sessions/create
     const session = await stripe.checkout.sessions.create({
-        line_items: [
+      ui_mode: 'custom',
+      line_items: [
         {
-            "price_data" : {
-                "currency" : "usd",
-                "product_data":{
-                    "name": "Generic Granola"
-                },
-                "unit_amount": 1200,
-            },
-            "quantity": 1
+          "price_data" : {
+              "currency" : "usd",
+              "product_data":{
+                  "name": "Generic Granola"
+              },
+              "unit_amount": 1200,
+          },
+          "quantity": 1
         }
-        ],
-        mode: "payment",
-        success_url: "/order-success?success=true",
-        cancel_url: "?canceled=true"
+      ],
+      mode: "payment",
+      return_url: "http://localhost:5173/order-success?session_id={CHECKOUT_SESSION_ID}",
     });
 
     return json({clientSecret: session.client_secret});
