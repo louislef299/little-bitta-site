@@ -1,22 +1,36 @@
-import { sql, SQL } from "bun";
+import { pool } from './db';
+import type { RowDataPacket } from 'mysql2';
 
-// PostgreSQL (default)
-const users = await sql`
-  SELECT * FROM users
-  WHERE active = ${true}
-  LIMIT ${10}
-`;
+export interface Granola {
+	id: number;
+	slug: string;
+	name: string;
+	description: string;
+	ingredients: string;
+	price: number;
+	image_url: string;
+}
 
-// With MySQL
-const mysql = new SQL("mysql://user:pass@localhost:3306/mydb");
-const mysqlResults = await mysql`
-  SELECT * FROM users 
-  WHERE active = ${true}
-`;
+interface GranolaRow extends RowDataPacket, Granola {}
 
-// With SQLite
-const sqlite = new SQL("sqlite://myapp.db");
-const sqliteResults = await sqlite`
-  SELECT * FROM users 
-  WHERE active = ${1}
-`;
+export async function getGranolaBySlug(slug: string): Promise<Granola | null> {
+	const [rows] = await pool.execute<GranolaRow[]>(
+		`SELECT id, slug, name, description, ingredients, price, image_url
+		 FROM granola
+		 WHERE slug = ?
+		 LIMIT 1`,
+		[slug]
+	);
+
+	return rows[0] ?? null;
+}
+
+export async function getAllGranola(): Promise<Granola[]> {
+	const [rows] = await pool.execute<GranolaRow[]>(
+		`SELECT id, slug, name, description, ingredients, price, image_url
+		 FROM granola
+		 ORDER BY name`
+	);
+
+	return rows;
+}

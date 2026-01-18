@@ -36,6 +36,7 @@
 		"@lucide/svelte": "^0.562.0",
 		"@paypal/paypal-js": "^9.2.0",
 		"@stripe/stripe-js": "^8.6.1",
+		"mysql2": "^3.16.1",
 		"stripe": "^20.2.0",
 		"svelte-stripe": "^1.4.0"
 	}
