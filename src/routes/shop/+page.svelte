@@ -8,18 +8,21 @@
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import CapacityBar from '$lib/components/CapacityBar.svelte';
+    import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
     let currentDrop = getCurrentDrop();
     let isCurrentDropAvailable = $derived(isDropAvailable(currentDrop.id));
 
-    var items = [
-        { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "3", name: "Honey Bear", price: 12, img: "/images/granola-generic.jpg"},
-        { id: "4", name: "Pistachio", price: 12, img: "/images/granola-generic.jpg"},
-    ]
+    // var items = [
+    //     { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
+    //     { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
+    //     { id: "3", name: "Honey Bear", price: 12, img: "/images/granola-generic.jpg"},
+    //     { id: "4", name: "Pistachio", price: 12, img: "/images/granola-generic.jpg"},
+    // ]
 
-    function reduceByOne(id: string) {
+    function reduceByOne(id: number) {
         updateQuantity(id, (getTotalForItem(id)-1));
     }
 
@@ -51,11 +54,13 @@
 </div> 
 
 <ul>
-	{#each items as item}
+	{#each data.granola as item}
 		<li>
-            <img class="shop" alt="{item.name} image" src={item.img} />
+            <img class="shop" alt="{item.name} image" src={item.image_url} />
             <div class="item-name">
-                <strong>{item.name}</strong>
+                <a href="/granola/{item.slug}">
+                    <strong>{item.name}</strong>
+                </a>
             </div>
             
             <div class="item-footer">

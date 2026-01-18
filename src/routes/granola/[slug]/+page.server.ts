@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	if (!granola) {
 		throw error(404, {
-			message: 'Granola not found'
+			message: `Granola ${params.slug} not found`
 		});
 	}
 

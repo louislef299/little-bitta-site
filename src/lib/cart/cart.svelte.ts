@@ -6,7 +6,7 @@ const CART_SCHEMA_VERSION = '1.0.0';
 
 // Product catalog type
 export type Product = {
-	id: string;
+	id: number;
 	name: string;
 	price: number;
 	image_path: string;
@@ -16,7 +16,7 @@ export type Product = {
 };
 
 export type OrderItem = {
-    id: string;
+    id: number;
     name: string;
     quantity: number;
     price: number;
@@ -84,7 +84,7 @@ export function addToCart(item: Omit<OrderItem, 'quantity'>) {
 	saveCart(cart.items);
 }
 
-export function removeFromCart(itemId: string) {
+export function removeFromCart(itemId: number) {
 	cart.items = cart.items.filter((i) => i.id !== itemId);
 	saveCart(cart.items);
 }
@@ -94,7 +94,7 @@ export function emptyCart() {
 	localStorage.clear();
 }
 
-export function updateQuantity(itemId: string, quantity: number) {
+export function updateQuantity(itemId: number, quantity: number) {
 	const item = cart.items.find((i) => i.id === itemId);
 	if (item) {
 		if (quantity <= 0) {
@@ -119,7 +119,7 @@ export function getItemTotal() {
 }
 
 // Default return of 0 if item is not found
-export function getTotalForItem(id: string) {
+export function getTotalForItem(id: number) {
 	for (const i of cart.items) {
 		if (i.id === id) {
 			return i.quantity;
