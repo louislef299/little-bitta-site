@@ -13,3 +13,6 @@ helm-charts
 .editorconfig
 .idea
 coverage*
+.svelte-kit
+.claude
+docs
