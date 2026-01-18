@@ -1,26 +1,32 @@
 ---
 services:
-  web:
+  bun:
     build: .
+    container_name: bun-bitta
     ports:
     - "5173:5173"
-    volumes:
-    - .:/app
-    - /app/node_modules
     environment:
     - NODE_ENV=development
     depends_on:
     - db
+    networks:
+    - net
 
   db:
-    image: mysql:8
+    image: mysql:9.5
+    container_name: bitta-db
     ports:
     - "3306:3306"
     environment:
     - MYSQL_ROOT_PASSWORD=password
     - MYSQL_DATABASE=little_bitta
+    networks:
+    - net
     volumes:
     - data:/var/lib/mysql
+
+networks:
+  net:
 
 volumes:
   data:
