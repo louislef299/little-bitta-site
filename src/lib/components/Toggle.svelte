@@ -6,46 +6,46 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { Moon, Sun } from '@lucide/svelte';
+    import { isDark, setTheme } from '$lib/toggle.svelte';
 
-    let currentTheme = $state<boolean>(false);
+    const THEME_KEY = 'theme-preference';
     let mounted = $state(false);
 
-    function isDark(): boolean {
-        var scheme = document.documentElement.getAttribute('data-theme')
-        return scheme === 'dark'
-    }
-
 	function changeTheme() {
-		if (isDark()) {
-			document.documentElement.setAttribute('data-theme', 'light');
-            currentTheme = false;
-		} else {
-			document.documentElement.setAttribute('data-theme', 'dark');
-            currentTheme = true;
-		}
+		setTheme(isDark() ? 'light' : 'dark');
     }
 
     onMount(() => {
-        const detectColorScheme = () => {
+        // Check localStorage first
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored === 'dark' || stored === 'light') {
+            console.debug('[Toggle] Using stored preference:', stored);
+            setTheme(stored);
+        } else {
+            // Fall back to system preference
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 console.debug('[Toggle] User prefers dark mode');
-                document.documentElement.setAttribute('data-theme', 'dark');
+                setTheme('dark');
             } else {
                 console.debug('[Toggle] User prefers light mode');
-                document.documentElement.setAttribute('data-theme', 'light');
+                setTheme('light');
             }
         }
 
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectColorScheme);
+        // Listen for system preference changes (only if no stored preference)
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem(THEME_KEY)) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
 
-        detectColorScheme();
         mounted = true;
     });
 </script>
 
 <button type="button" onclick={changeTheme} class="theme-toggle">
     {#if mounted}
-        {#if currentTheme}
+        {#if !isDark()}
             <Sun />
         {:else}
             <Moon />

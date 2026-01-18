@@ -11,12 +11,22 @@
     import { onMount } from 'svelte';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import { getItems } from '$lib/cart/cart.svelte';
-    import type { LoadActionsSuccess } from '@stripe/stripe-js';
+    import type { 
+      LoadActionsSuccess, Appearance, StripeCheckout 
+    } from '@stripe/stripe-js';
+    import { isDark } from '$lib/toggle.svelte';
 
     let actions: LoadActionsSuccess | null = null;
+    let checkout: StripeCheckout | null = null;
     let errorMessage = $state('');
     let stripeTotal: string = $state("");
     let email: string = $state("");
+
+    function getAppearance(): Appearance {
+      return {
+        theme: isDark() ? 'night' : 'stripe',
+      };
+    }
 
     async function fetchClientSecret() {
       const response = await fetch("/api/stripe/checkout-session", {
@@ -31,15 +41,19 @@
     onMount(async () => {
       // Access the global Stripe loaded from script tag
       const stripe = await loadStripeInstance();
-      const checkout = await stripe.initCheckout({ 
+      checkout = await stripe.initCheckout({
         clientSecret: fetchClientSecret(),
+        elementsOptions: {
+          appearance: getAppearance()
+        }
       });
+
       const paymentElement = checkout.createPaymentElement({
         layout: "tabs",
         // https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
         // todo: https://docs.stripe.com/payments/paypal
         paymentMethodOrder: [
-          'apple_pay', 'google_pay', 'amazon_pay', 
+          'apple_pay', 'google_pay', 'amazon_pay',
           'card', 'cashapp', 'klarna',
         ]
       });
@@ -63,8 +77,13 @@
         if (result.type === 'success') {
           // Use the actions object to interact with the Checkout Session
           actions = result.actions;
-          var session = actions.getSession();
-          stripeTotal = session.total.total.amount;
+          var session = actions?.getSession();
+          if (session != undefined) {
+            stripeTotal = session.total.total.amount;
+          } else {
+            console.error("session was undefined")
+            stripeTotal = "undefined"
+          }
         }
       })
     });

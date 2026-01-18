@@ -7,6 +7,17 @@ there is nothing left to take away." - Antoine de Saint-Exupéry -->
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 
+		<!-- Prevent theme flash - must run before CSS -->
+		<script>
+			(function() {
+				var theme = localStorage.getItem('theme-preference');
+				if (!theme) {
+					theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				}
+				document.documentElement.setAttribute('data-theme', theme);
+			})();
+		</script>
+
 		<!-- required to remain PCI compliant -->
 		<script src="https://js.stripe.com/clover/stripe.js"></script>
 		%sveltekit.head%
