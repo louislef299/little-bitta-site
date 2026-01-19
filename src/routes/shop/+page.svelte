@@ -1,30 +1,17 @@
 <script lang="ts">
     import { 
-        addToCart, getTotalForItem, updateQuantity 
-    } from '$lib/cart/cart.svelte';
-    import { 
         getCurrentDrop, isDropAvailable
     } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import CapacityBar from '$lib/components/CapacityBar.svelte';
     import type { PageProps } from './$types';
+    import AddToCart from '$lib/components/AddToCart.svelte';
 
 	let { data }: PageProps = $props();
 
     let currentDrop = getCurrentDrop();
     let isCurrentDropAvailable = $derived(isDropAvailable(currentDrop.id));
-
-    // var items = [
-    //     { id: "1", name: "Peanut Butter Chocolate Chip", price: 12, img: "/images/granola-generic.jpg"},
-    //     { id: "2", name: "Peanut Butter Nutella", price: 12, img: "/images/granola-generic.jpg"},
-    //     { id: "3", name: "Honey Bear", price: 12, img: "/images/granola-generic.jpg"},
-    //     { id: "4", name: "Pistachio", price: 12, img: "/images/granola-generic.jpg"},
-    // ]
-
-    function reduceByOne(id: number) {
-        updateQuantity(id, (getTotalForItem(id)-1));
-    }
 
     // Opportunistically load payment SDKs when browser is idle
     if (browser) {
@@ -67,24 +54,7 @@
                 <div class="item-info">
                     ${item.price}/lb
                 </div>
-                <div class="button-group">
-                    <button 
-                        type="button" 
-                        disabled={!isCurrentDropAvailable}
-                        onclick={() => {
-                            addToCart({
-                                id: item.id,
-                                name: item.name,
-                                price: item.price,
-                                drop: currentDrop,
-                            })
-                        }}>
-                        +Cart {#if getTotalForItem(item.id) > 0}{getTotalForItem(item.id)}{/if}
-                    </button>
-                    <button type="button" onclick={() => reduceByOne(item.id)}>
-                        -Cart
-                    </button>
-                </div>
+                <AddToCart id={item.id} name={item.name} price={item.price}/>
             </div>
         </li>
 	{/each}
@@ -109,11 +79,6 @@
         text-align: center;
     }
 
-    .button-group {
-        display: flex;
-        gap: 0.5rem;
-    }
-
     .capacity-warning {
         color: #f59e0b;
         font-weight: 500;
@@ -135,19 +100,5 @@
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
-    }
-
-    button {
-        padding: 0.5rem 0.5rem;
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background: #666;
-    }
-
-    button:disabled:hover {
-        background: #666;
     }
 </style>

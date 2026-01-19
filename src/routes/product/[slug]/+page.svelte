@@ -1,4 +1,6 @@
 <script lang="ts">
+    import AddToCart from '$lib/components/AddToCart.svelte';
+    import CapacityBar from '$lib/components/CapacityBar.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -17,6 +19,15 @@
 	<section class="ingredients">
 		<h2>Ingredients</h2>
 		<p>{data.product.ingredients}</p>
+	</section>
+
+	<section class="cart">
+		<AddToCart id={data.product.id} name={data.product.name}
+		price={data.product.price}/>
+	</section>
+
+	<section class="capacity">
+		<CapacityBar />
 	</section>
 </article>
 
@@ -52,5 +63,14 @@
 	.ingredients h2 {
 		font-size: 1.25rem;
 		margin-bottom: 0.5rem;
+	}
+
+	.cart {
+		padding-top: 1em;
+	}
+
+	.capacity {
+		padding-top: 1em;
+		padding-bottom: 1em;
 	}
 </style>
