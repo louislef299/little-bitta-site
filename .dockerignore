@@ -17,3 +17,6 @@ helm-charts
 coverage*
 .claude
 docs
+build
+caddy_data
+config

@@ -19,7 +19,7 @@ services:
     - "443:443"
     volumes:
     - ./Caddyfile:/etc/caddy/Caddyfile
-    - caddy_data:/data
+    - ./caddy_data:/data
     environment:
     - DOMAIN=${DOMAIN:-localhost}
     networks:
@@ -52,5 +52,4 @@ networks:
   net:
 
 volumes:
-  caddy_data:
   data:

@@ -42,3 +42,4 @@ config/secrets/*
 
 # Caddy
 caddy.pid
+caddy_data
