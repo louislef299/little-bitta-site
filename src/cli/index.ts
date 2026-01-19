@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import mysql from "mysql2/promise";
+import { SQL } from "bun";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -9,13 +9,11 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const pool = mysql.createPool(DATABASE_URL);
+export const sql = new SQL(DATABASE_URL);
 
 const commands = {
   list: async () => {
-    const [rows] = await pool.execute(
-      "SELECT id, slug, name, price FROM granola ORDER BY name",
-    );
+    const rows = await sql`SELECT id, slug, name, price FROM granola ORDER BY name`;
 
     if (!Array.isArray(rows) || rows.length === 0) {
       console.log("No granola found");
@@ -54,8 +52,6 @@ async function main() {
     commands.help();
     process.exit(1);
   }
-
-  await pool.end();
 }
 
 main().catch((err) => {

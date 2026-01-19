@@ -5,18 +5,18 @@
 </script>
 
 <article class="granola-detail">
-	<img src={data.granola.image_url} alt={data.granola.name} class="granola-image" />
+	<img src={data.product.image_url} alt={data.product.name} class="granola-image" />
 
-	<h1>{data.granola.name}</h1>
-	<p class="price">${data.granola.price}/lb</p>
+	<h1>{data.product.name}</h1>
+	<p class="price">${data.product.price}/lb</p>
 
 	<section class="description">
-		<p>{data.granola.description}</p>
+		<p>{data.product.description}</p>
 	</section>
 
 	<section class="ingredients">
 		<h2>Ingredients</h2>
-		<p>{data.granola.ingredients}</p>
+		<p>{data.product.ingredients}</p>
 	</section>
 </article>
 

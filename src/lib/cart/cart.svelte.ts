@@ -4,17 +4,6 @@ import type { Drop } from "$lib/cart/drops.svelte";
 // Cart schema version - increment when OrderItem or Drop types change
 const CART_SCHEMA_VERSION = "1.0.0";
 
-// Product catalog type
-export type Product = {
-  id: number;
-  name: string;
-  price: number;
-  image_path: string;
-  description?: string;
-  active?: boolean;
-  stock_quantity?: number;
-};
-
 export type OrderItem = {
   id: number;
   name: string;

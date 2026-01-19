@@ -1,15 +1,15 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getGranolaBySlug } from "$lib/server/db/granola";
+import { getProductBySlug } from "$lib/server/db/product";
 
 export const load: PageServerLoad = async ({ params }) => {
-  const granola = await getGranolaBySlug(params.slug);
+  const product = await getProductBySlug(params.slug);
 
-  if (!granola) {
+  if (!product) {
     throw error(404, {
       message: `Granola ${params.slug} not found`,
     });
   }
 
-  return { granola };
+  return { product };
 };

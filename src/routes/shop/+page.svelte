@@ -54,11 +54,11 @@
 </div> 
 
 <ul>
-	{#each data.granola as item}
+	{#each data.product as item}
 		<li>
             <img class="shop" alt="{item.name} image" src={item.image_url} />
             <div class="item-name">
-                <a href="/granola/{item.slug}">
+                <a href="/product/{item.slug}">
                     <strong>{item.name}</strong>
                 </a>
             </div>
