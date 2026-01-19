@@ -3,7 +3,7 @@
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    const { drop, capacity } = data;
+    const { drop, capacity } = $derived(data);
 </script>
 
 <h2>Granola Made <i>Right</i></h2>

@@ -7,7 +7,7 @@
 
 	let { data }: PageProps = $props();
 
-    const { drop, capacity } = data;
+    const { drop, capacity } = $derived(data);
     let isCurrentDropAvailable = $derived(capacity ? capacity.available > 0 : false);
 
     // Opportunistically load payment SDKs when browser is idle
