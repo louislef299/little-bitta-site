@@ -7,4 +7,19 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
   },
+  ssr: {
+    external: ["bun"],
+    noExternal: [],
+  },
+  build: {
+    rollupOptions: {
+      external: ["bun"],
+    },
+  },
+  optimizeDeps: {
+    exclude: ["bun"],
+  },
+  resolve: {
+    conditions: ["bun"],
+  },
 });

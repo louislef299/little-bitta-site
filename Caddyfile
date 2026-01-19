@@ -1,3 +1,5 @@
+:443
+
 {$DOMAIN:localhost} {
     reverse_proxy bun:3000
 }
