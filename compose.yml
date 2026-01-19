@@ -4,7 +4,7 @@ services:
     build: .
     container_name: bun-bitta
     ports:
-    - "5173:5173"
+    - "3000:3000"
     environment:
     - NODE_ENV=development
     depends_on:

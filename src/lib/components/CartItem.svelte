@@ -4,7 +4,7 @@
     import type { Drop } from '$lib/cart/drops.svelte';
 
 	type Props = {
-		id: string;
+		id: number;
 		name: string;
 		quantity: number;
 		price: number;
