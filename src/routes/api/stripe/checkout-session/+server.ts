@@ -1,12 +1,7 @@
 import { dev } from '$app/environment';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { SECRET_STRIPE_KEY } from '$env/static/private';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(SECRET_STRIPE_KEY, {
-  apiVersion: '2025-12-15.clover',
-});
+import { getStripe } from '$lib/server/stripe';
 
 export const POST: RequestHandler = async ({ request, url }) => {
   try {
@@ -25,9 +20,11 @@ export const POST: RequestHandler = async ({ request, url }) => {
     }));
     console.log('Creating checkout session for items:', items);
 
+    const origin = dev ? 'http://localhost:5173' : url.origin;
+    const stripe = getStripe();
+
     // Create Stripe Checkout Session
     // https://docs.stripe.com/api/checkout/sessions/create
-    const origin = dev ? 'http://localhost:5173' : url.origin;
     console.log(`using return origin ${origin}`)
     const session = await stripe.checkout.sessions.create({
       ui_mode: 'custom',

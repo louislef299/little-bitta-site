@@ -6,14 +6,18 @@ FROM oven/bun:1.3.6-alpine AS build
 WORKDIR /app
 COPY . ./
 
-RUN bun i --no-cache && bun run build
+RUN bun i --no-cache && bun b
 
 FROM oven/bun:1.3.6-alpine
 
 WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=build /app/package.json ./
+
+# Anti-pattern, need to fix
+COPY .env.production .
 RUN bun i -p --no-cache
 
+ARG ENV_TARGET=".env.production"
 EXPOSE 3000
-CMD ["bun", "--env-file", ".env", "./build/index.js"]
+CMD ["bun", "--env-file", ${ENV_TARGET}, "./build/index.js"]

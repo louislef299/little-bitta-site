@@ -2,30 +2,46 @@
 services:
   bun:
     build: .
-    container_name: bun-bitta
-    ports:
-    - "3000:3000"
+    container_name: bun
+    env_file: ".env.production.local"
     environment:
-    - NODE_ENV=development
+    - NODE_ENV=production
+    secrets:
+    - psk
+    - ssk
+    networks:
+    - net
     depends_on:
       db:
         condition: service_healthy
-    networks:
-    - net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+    - "80:80"
+    - "443:443"
+    volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile
+    - caddy_data:/data
+    environment:
+    - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+    - bun
 
   db:
     image: mysql:9.5
-    container_name: bitta-db
-    ports:
-    - "3306:3306"
+    container_name: db
     environment:
     - MYSQL_ROOT_PASSWORD=password
     - MYSQL_DATABASE=little_bitta
+    ports:
+    - 3306:3306
     networks:
     - net
     volumes:
     - data:/var/lib/mysql
-    - ./scripts/init-db:/docker-entrypoint-initdb.d:ro
+    - ./config/init-db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
       interval: 10s
@@ -36,5 +52,12 @@ services:
 networks:
   net:
 
+secrets:
+   psk:
+     file: config/secrets/psk.txt
+   ssk:
+     file: config/secrets/ssk.txt
+
 volumes:
+  caddy_data:
   data:
