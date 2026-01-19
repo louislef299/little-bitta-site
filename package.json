@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "cli": "bun src/cli/index.ts",
-    "dev": "vite dev",
+    "dev": "bun --bun --env-file .env vite dev",
     "b": "bun --bun vite build",
     "serve": "bun ./build/index.js",
     "prepare": "svelte-kit sync || echo ''",
