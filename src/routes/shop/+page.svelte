@@ -1,7 +1,4 @@
 <script lang="ts">
-    import { 
-        getCurrentDrop, isDropAvailable
-    } from '$lib/cart/drops.svelte'
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import CapacityBar from '$lib/components/CapacityBar.svelte';
@@ -10,8 +7,8 @@
 
 	let { data }: PageProps = $props();
 
-    let currentDrop = getCurrentDrop();
-    let isCurrentDropAvailable = $derived(isDropAvailable(currentDrop.id));
+    const { drop, capacity } = data;
+    let isCurrentDropAvailable = $derived(capacity ? capacity.available > 0 : false);
 
     // Opportunistically load payment SDKs when browser is idle
     if (browser) {
@@ -27,18 +24,18 @@
     }
 </script>
 
-<h1>Granola {#if isCurrentDropAvailable} Available {:else} Unavailable 😭 {/if}</h1>
+<h1>Granola {#if isCurrentDropAvailable} Available {:else} Unavailable {/if}</h1>
 
 <div>
-    <h3>Currently shopping for drop: {currentDrop.long} {currentDrop.year}</h3>
-    <CapacityBar />
+    <h3>Currently shopping for drop: {drop.display_name} {drop.year}</h3>
+    <CapacityBar {capacity} />
 
     {#if !isCurrentDropAvailable}
         <p class="capacity-warning">
-            ⚠️ This drop is at capacity.
+            This drop is at capacity.
         </p>
     {/if}
-</div> 
+</div>
 
 <ul>
 	{#each data.product as item}
@@ -49,12 +46,12 @@
                     <strong>{item.name}</strong>
                 </a>
             </div>
-            
+
             <div class="item-footer">
                 <div class="item-info">
                     ${item.price}/lb
                 </div>
-                <AddToCart id={item.id} name={item.name} price={item.price}/>
+                <AddToCart id={item.id} name={item.name} price={item.price} {drop} {capacity}/>
             </div>
         </li>
 	{/each}

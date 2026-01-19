@@ -36,3 +36,20 @@ INSERT INTO products (slug, name, description, ingredients, price, image_url, pr
   '/images/granola-generic.jpg',
   'granola'
 );
+
+-- Seed drops
+INSERT INTO drops (display_name, year, status, max_capacity, description) VALUES
+(
+  'January',
+  2026,
+  'active',
+  50,
+  'Start the new year with delicious granola!'
+),
+(
+  'February',
+  2026,
+  'upcoming',
+  50,
+  'Valentine special coming soon!'
+);

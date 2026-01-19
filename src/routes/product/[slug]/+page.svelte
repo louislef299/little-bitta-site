@@ -4,30 +4,30 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const { product, drop, capacity } = $derived(data);
 </script>
 
 <article class="granola-detail">
-	<img src={data.product.image_url} alt={data.product.name} class="granola-image" />
+	<img src={product.image_url} alt={product.name} class="granola-image" />
 
-	<h1>{data.product.name}</h1>
-	<p class="price">${data.product.price}/lb</p>
+	<h1>{product.name}</h1>
+	<p class="price">${product.price}/lb</p>
 
 	<section class="description">
-		<p>{data.product.description}</p>
+		<p>{product.description}</p>
 	</section>
 
 	<section class="ingredients">
 		<h2>Ingredients</h2>
-		<p>{data.product.ingredients}</p>
+		<p>{product.ingredients}</p>
 	</section>
 
 	<section class="cart">
-		<AddToCart id={data.product.id} name={data.product.name}
-		price={data.product.price}/>
+		<AddToCart id={product.id} name={product.name} price={product.price} {drop} {capacity}/>
 	</section>
 
 	<section class="capacity">
-		<CapacityBar />
+		<CapacityBar {capacity} />
 	</section>
 </article>
 

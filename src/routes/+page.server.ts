@@ -1,17 +1,8 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getProductBySlug } from "$lib/server/db/product";
 import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
 
-export const load: PageServerLoad = async ({ params }) => {
-  const product = await getProductBySlug(params.slug);
-
-  if (!product) {
-    throw error(404, {
-      message: `Granola ${params.slug} not found`,
-    });
-  }
-
+export const load: PageServerLoad = async () => {
   const drop = await getCurrentDrop();
   if (!drop) {
     throw error(500, {
@@ -21,5 +12,5 @@ export const load: PageServerLoad = async ({ params }) => {
 
   const capacity = await getDropCapacity(drop.id);
 
-  return { product, drop, capacity };
+  return { drop, capacity };
 };

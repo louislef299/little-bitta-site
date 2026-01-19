@@ -36,4 +36,95 @@ export async function initDevDb() {
       ('pistachio', 'Pistachio', 'Elegant and nutty with generous chunks of premium pistachios throughout. A sophisticated granola for the discerning palate.', 'Rolled oats, roasted pistachios, honey, coconut oil, almond extract, cardamom, sea salt', 12.00, '/images/granola-generic.jpg', 'granola')
     `;
   }
+
+  // Create drops table (SQLite syntax)
+  await sql`
+    CREATE TABLE IF NOT EXISTS drops (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      display_name TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'active', 'sold_out', 'ended')),
+      max_capacity INTEGER NOT NULL DEFAULT 50,
+      start_date TEXT,
+      end_date TEXT,
+      description TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  // Seed drops data
+  const existingDrops = await sql`SELECT COUNT(*) as count FROM drops`;
+  if (existingDrops[0].count === 0) {
+    await sql`INSERT INTO drops (display_name, year, status, max_capacity, description) VALUES
+      ('January', 2026, 'active', 50, 'Start the new year with delicious granola!'),
+      ('February', 2026, 'upcoming', 50, 'Valentine special coming soon!')
+    `;
+  }
+
+  // Create orders table (SQLite syntax)
+  await sql`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stripe_session_id TEXT UNIQUE,
+      stripe_payment_intent TEXT,
+      customer_email TEXT,
+      total_amount REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'cancelled', 'refunded')),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  // Create order_items table (SQLite syntax)
+  await sql`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      drop_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price REAL NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (drop_id) REFERENCES drops(id)
+    )
+  `;
+
+  // Seed sample orders for dev testing
+  const existingOrders = await sql`SELECT COUNT(*) as count FROM orders`;
+  if (existingOrders[0].count === 0) {
+    // Order 1: Confirmed order with 2 items
+    await sql`INSERT INTO orders (stripe_session_id, stripe_payment_intent, customer_email, total_amount, status)
+      VALUES ('cs_test_sample_001', 'pi_test_sample_001', 'alice@example.com', 36.00, 'confirmed')`;
+    await sql`INSERT INTO order_items (order_id, product_id, drop_id, quantity, unit_price) VALUES
+      (1, 1, 1, 2, 12.00),
+      (1, 3, 1, 1, 12.00)`;
+
+    // Order 2: Confirmed order with 1 item
+    await sql`INSERT INTO orders (stripe_session_id, stripe_payment_intent, customer_email, total_amount, status)
+      VALUES ('cs_test_sample_002', 'pi_test_sample_002', 'bob@example.com', 24.00, 'confirmed')`;
+    await sql`INSERT INTO order_items (order_id, product_id, drop_id, quantity, unit_price) VALUES
+      (2, 2, 1, 2, 12.00)`;
+
+    // Order 3: Confirmed order with multiple items
+    await sql`INSERT INTO orders (stripe_session_id, stripe_payment_intent, customer_email, total_amount, status)
+      VALUES ('cs_test_sample_003', 'pi_test_sample_003', 'carol@example.com', 48.00, 'confirmed')`;
+    await sql`INSERT INTO order_items (order_id, product_id, drop_id, quantity, unit_price) VALUES
+      (3, 4, 1, 3, 12.00),
+      (3, 1, 1, 1, 12.00)`;
+
+    // Order 4: Pending order (should NOT count toward capacity)
+    await sql`INSERT INTO orders (stripe_session_id, customer_email, total_amount, status)
+      VALUES ('cs_test_sample_004', 'dave@example.com', 12.00, 'pending')`;
+    await sql`INSERT INTO order_items (order_id, product_id, drop_id, quantity, unit_price) VALUES
+      (4, 3, 1, 1, 12.00)`;
+
+    // Order 5: Cancelled order (should NOT count toward capacity)
+    await sql`INSERT INTO orders (stripe_session_id, stripe_payment_intent, customer_email, total_amount, status)
+      VALUES ('cs_test_sample_005', 'pi_test_sample_005', 'eve@example.com', 24.00, 'cancelled')`;
+    await sql`INSERT INTO order_items (order_id, product_id, drop_id, quantity, unit_price) VALUES
+      (5, 2, 1, 2, 12.00)`;
+  }
 }
