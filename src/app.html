@@ -3,26 +3,28 @@ there is nothing left to take away." - Antoine de Saint-Exupéry -->
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-		<!-- Prevent theme flash - must run before CSS -->
-		<script>
-			(() => {
-				var theme = localStorage.getItem('theme-preference');
-				if (!theme) {
-					theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-				}
-				document.documentElement.setAttribute('data-theme', theme);
-			})();
-		</script>
+    <!-- Prevent theme flash - must run before CSS -->
+    <script>
+      (() => {
+        var theme = localStorage.getItem("theme-preference");
+        if (!theme) {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
 
-		<!-- required to remain PCI compliant -->
-		<script src="https://js.stripe.com/clover/stripe.js" async></script>
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+    <!-- required to remain PCI compliant -->
+    <script src="https://js.stripe.com/clover/stripe.js" async></script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
 </html>

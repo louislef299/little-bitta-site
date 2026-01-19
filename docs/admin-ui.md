@@ -15,12 +15,14 @@ is never deployed to production.
 ### Why Local-Only?
 
 Public admin endpoints are a primary attack vector:
+
 - Constant automated scanning for `/admin`, `/dashboard`, `/wp-admin`, etc.
 - Even with strong authentication, you're defending against bots 24/7
 - Session management, CSRF, XSS, and auth bypass vulnerabilities
 - Credential stuffing, brute force, and zero-day exploit attempts
 
 **Attack Surface Comparison:**
+
 ```
 Public Admin Endpoint:
 - Authentication system (potential bypass)
@@ -42,6 +44,7 @@ Local-Only Admin:
 ### Business Context for Little Bitta
 
 For a small granola business:
+
 - **Low update frequency** - Products change occasionally, not hourly
 - **Technical ownership** - If you can build a SvelteKit site, you can run it locally
 - **Direct database access** - More powerful than web UI anyway
@@ -52,11 +55,13 @@ For a small granola business:
 ## Overview
 
 The admin panel provides a local-only interface for managing:
+
 - Products (add, edit, delete, stock management)
 - Orders (view, update status, track fulfillment)
 - Basic analytics (sales, inventory)
 
 **Technology:**
+
 - **Frontend:** SvelteKit (development mode only)
 - **Backend:** Direct Turso connection (production database)
 - **Database:** Turso (SQLite-compatible)
@@ -65,6 +70,7 @@ The admin panel provides a local-only interface for managing:
 ## Architecture
 
 **Development Mode:**
+
 ```
 Local Machine
     ↓
@@ -78,6 +84,7 @@ Production database
 ```
 
 **Production Build:**
+
 ```
 Admin routes excluded from build
     ↓
@@ -139,8 +146,8 @@ CREATE TABLE admin_users (
 
 ```js
 // svelte.config.js
-import adapter from '@sveltejs/adapter-netlify';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import adapter from "@sveltejs/adapter-netlify";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
 const config = {
   preprocess: vitePreprocess(),
@@ -148,9 +155,9 @@ const config = {
   kit: {
     adapter: adapter({
       edge: false,
-      split: false
-    })
-  }
+      split: false,
+    }),
+  },
 };
 
 export default config;
@@ -160,22 +167,23 @@ export default config;
 
 ```ts
 // src/routes/admin/+layout.server.ts
-import { dev } from '$app/environment';
-import { error } from '@sveltejs/kit';
+import { dev } from "$app/environment";
+import { error } from "@sveltejs/kit";
 
 export async function load() {
   // Admin panel only available in development mode
   if (!dev) {
-    throw error(404, 'Not found');
+    throw error(404, "Not found");
   }
 
   return {
-    environment: 'development'
+    environment: "development",
   };
 }
 ```
 
 **Result:**
+
 - In development: `/admin` routes work normally
 - In production: `/admin` returns 404 (routes don't exist in build)
 - No authentication system needed
@@ -197,7 +205,7 @@ NETLIFY_AUTH_TOKEN=your-netlify-token
 ```ts
 // src/lib/server/db.ts
 import { createClient } from "@libsql/client";
-import { dev } from '$app/environment';
+import { dev } from "$app/environment";
 
 export const getDb = () => {
   // Both dev and prod can connect to production Turso
@@ -205,7 +213,7 @@ export const getDb = () => {
   // Prod connects for customer-facing operations
   return createClient({
     url: process.env.TURSO_URL!,
-    authToken: process.env.TURSO_TOKEN!
+    authToken: process.env.TURSO_TOKEN!,
   });
 };
 ```
@@ -234,6 +242,7 @@ exists anywhere.
 ### Daily Operations
 
 **Update product stock:**
+
 ```bash
 # 1. Start local dev server
 bun run dev
@@ -257,30 +266,31 @@ escape hatch:
 
 ```ts
 // src/routes/admin/+layout.server.ts
-import { dev } from '$app/environment';
-import { error } from '@sveltejs/kit';
+import { dev } from "$app/environment";
+import { error } from "@sveltejs/kit";
 
 export async function load({ request }) {
   // Always allow in development
   if (dev) {
-    return { environment: 'development' };
+    return { environment: "development" };
   }
 
   // Emergency access only (use sparingly)
-  const authHeader = request.headers.get('authorization');
+  const authHeader = request.headers.get("authorization");
   const emergencyToken = process.env.EMERGENCY_ADMIN_TOKEN;
 
   if (emergencyToken && authHeader === `Bearer ${emergencyToken}`) {
-    console.warn('⚠️ EMERGENCY ADMIN ACCESS USED');
-    return { environment: 'emergency' };
+    console.warn("⚠️ EMERGENCY ADMIN ACCESS USED");
+    return { environment: "emergency" };
   }
 
   // Production: admin does not exist
-  throw error(404, 'Not found');
+  throw error(404, "Not found");
 }
 ```
 
 **Usage:**
+
 ```bash
 # Store in password manager, use only when truly needed
 curl -H "Authorization: Bearer your-emergency-token" \
@@ -296,14 +306,14 @@ need remote access in emergencies. Otherwise, keep it pure local-only.
 
 ```ts
 // src/routes/admin/products/+page.server.ts
-import { getDb } from '$lib/server/db';
-import { fail, redirect } from '@sveltejs/kit';
+import { getDb } from "$lib/server/db";
+import { fail, redirect } from "@sveltejs/kit";
 
 // Check authentication
 async function requireAuth(cookies) {
-  const sessionId = cookies.get('session');
+  const sessionId = cookies.get("session");
   if (!sessionId) {
-    throw redirect(303, '/admin/login');
+    throw redirect(303, "/admin/login");
   }
   // Verify session in database
   return sessionId;
@@ -314,11 +324,11 @@ export async function load({ cookies }) {
   const db = getDb();
 
   const result = await db.execute(
-    "SELECT * FROM products ORDER BY created_at DESC"
+    "SELECT * FROM products ORDER BY created_at DESC",
   );
 
   return {
-    products: result.rows
+    products: result.rows,
   };
 }
 
@@ -333,17 +343,17 @@ export const actions = {
       await db.execute({
         sql: "INSERT INTO products (name, description, price, image_url, stock) VALUES (?, ?, ?, ?, ?)",
         args: [
-          data.get('name'),
-          data.get('description'),
-          data.get('price'),
-          data.get('image_url'),
-          data.get('stock') || 0
-        ]
+          data.get("name"),
+          data.get("description"),
+          data.get("price"),
+          data.get("image_url"),
+          data.get("stock") || 0,
+        ],
       });
 
-      return { success: true, message: 'Product created' };
+      return { success: true, message: "Product created" };
     } catch (error) {
-      return fail(500, { error: 'Failed to create product' });
+      return fail(500, { error: "Failed to create product" });
     }
   },
 
@@ -357,18 +367,18 @@ export const actions = {
       await db.execute({
         sql: "UPDATE products SET name = ?, description = ?, price = ?, image_url = ?, stock = ? WHERE id = ?",
         args: [
-          data.get('name'),
-          data.get('description'),
-          data.get('price'),
-          data.get('image_url'),
-          data.get('stock'),
-          data.get('id')
-        ]
+          data.get("name"),
+          data.get("description"),
+          data.get("price"),
+          data.get("image_url"),
+          data.get("stock"),
+          data.get("id"),
+        ],
       });
 
-      return { success: true, message: 'Product updated' };
+      return { success: true, message: "Product updated" };
     } catch (error) {
-      return fail(500, { error: 'Failed to update product' });
+      return fail(500, { error: "Failed to update product" });
     }
   },
 
@@ -381,14 +391,14 @@ export const actions = {
     try {
       await db.execute({
         sql: "UPDATE products SET active = 0 WHERE id = ?",
-        args: [data.get('id')]
+        args: [data.get("id")],
       });
 
-      return { success: true, message: 'Product deleted' };
+      return { success: true, message: "Product deleted" };
     } catch (error) {
-      return fail(500, { error: 'Failed to delete product' });
+      return fail(500, { error: "Failed to delete product" });
     }
-  }
+  },
 };
 ```
 
@@ -400,7 +410,7 @@ import { createClient } from "@libsql/client";
 
 const db = createClient({
   url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
+  authToken: process.env.TURSO_TOKEN!,
 });
 
 function isAuthenticated(req: Request): boolean {
@@ -440,7 +450,7 @@ export default async (req: Request) => {
       const { orderId, status } = await req.json();
       await db.execute({
         sql: "UPDATE orders SET status = ? WHERE id = ?",
-        args: [status, orderId]
+        args: [status, orderId],
       });
       return Response.json({ success: true });
     }
@@ -459,263 +469,343 @@ export default async (req: Request) => {
 <!-- public/admin.html -->
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Little Bitta</title>
-  <script type="module" src="/admin.js"></script>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-    th { background: #f5f5f5; font-weight: 600; }
-    input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
-    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-    .login-form { max-width: 400px; margin: 100px auto; }
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .tab { padding: 10px 20px; cursor: pointer; background: #f5f5f5; border-radius: 5px; }
-    .tab.active { background: #007bff; color: white; }
-  </style>
-</head>
-<body x-data="adminPanel()" x-init="init()">
-
-  <!-- Login Form -->
-  <div x-show="!authenticated" class="login-form">
-    <h1>Admin Login</h1>
-    <form @submit.prevent="login">
-      <input x-model="credentials.username" placeholder="Username" required>
-      <input x-model="credentials.password" type="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-      <p x-show="loginError" style="color: red;" x-text="loginError"></p>
-    </form>
-  </div>
-
-  <!-- Admin Dashboard -->
-  <div x-show="authenticated">
-    <header style="display: flex; justify-content: space-between; align-items: center;">
-      <h1>Little Bitta Admin</h1>
-      <div>
-        <span x-text="username"></span> |
-        <button @click="logout">Logout</button>
-      </div>
-    </header>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab" :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">
-        Products
-      </div>
-      <div class="tab" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'; loadOrders()">
-        Orders
-      </div>
-    </div>
-
-    <!-- Products Tab -->
-    <div x-show="activeTab === 'products'">
-      <h2>Product Management</h2>
-
-      <!-- Product List -->
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="product in products" :key="product.id">
-            <tr>
-              <td x-text="product.name"></td>
-              <td x-text="'$' + product.price"></td>
-              <td x-text="product.stock"></td>
-              <td x-text="product.active ? 'Active' : 'Inactive'"></td>
-              <td>
-                <button @click="editProduct(product)">Edit</button>
-                <button @click="deleteProduct(product.id)">Delete</button>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-
-      <!-- Add/Edit Form -->
-      <h3 x-text="form.id ? 'Edit Product' : 'Add New Product'"></h3>
-      <form @submit.prevent="saveProduct">
-        <input x-model="form.name" placeholder="Product name" required>
-        <textarea x-model="form.description" placeholder="Description" rows="3"></textarea>
-        <input x-model="form.price" type="number" step="0.01" placeholder="Price" required>
-        <input x-model="form.stock" type="number" placeholder="Stock quantity" required>
-        <input x-model="form.image_url" placeholder="Image URL">
-        <div>
-          <button type="submit">Save Product</button>
-          <button type="button" @click="form = {}">Cancel</button>
-        </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - Little Bitta</title>
+    <script type="module" src="/admin.js"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background: #f5f5f5;
+        font-weight: 600;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+      }
+      .login-form {
+        max-width: 400px;
+        margin: 100px auto;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        background: #f5f5f5;
+        border-radius: 5px;
+      }
+      .tab.active {
+        background: #007bff;
+        color: white;
+      }
+    </style>
+  </head>
+  <body x-data="adminPanel()" x-init="init()">
+    <!-- Login Form -->
+    <div x-show="!authenticated" class="login-form">
+      <h1>Admin Login</h1>
+      <form @submit.prevent="login">
+        <input x-model="credentials.username" placeholder="Username" required />
+        <input
+          x-model="credentials.password"
+          type="password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+        <p x-show="loginError" style="color: red;" x-text="loginError"></p>
       </form>
     </div>
 
-    <!-- Orders Tab -->
-    <div x-show="activeTab === 'orders'">
-      <h2>Order Management</h2>
+    <!-- Admin Dashboard -->
+    <div x-show="authenticated">
+      <header
+        style="display: flex; justify-content: space-between; align-items: center;"
+      >
+        <h1>Little Bitta Admin</h1>
+        <div>
+          <span x-text="username"></span> |
+          <button @click="logout">Logout</button>
+        </div>
+      </header>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Customer</th>
-            <th>Items</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="order in orders" :key="order.id">
+      <!-- Tabs -->
+      <div class="tabs">
+        <div
+          class="tab"
+          :class="{ active: activeTab === 'products' }"
+          @click="activeTab = 'products'"
+        >
+          Products
+        </div>
+        <div
+          class="tab"
+          :class="{ active: activeTab === 'orders' }"
+          @click="activeTab = 'orders'; loadOrders()"
+        >
+          Orders
+        </div>
+      </div>
+
+      <!-- Products Tab -->
+      <div x-show="activeTab === 'products'">
+        <h2>Product Management</h2>
+
+        <!-- Product List -->
+        <table>
+          <thead>
             <tr>
-              <td x-text="'#' + order.id"></td>
-              <td x-text="order.customer_email"></td>
-              <td x-text="order.items"></td>
-              <td x-text="'$' + order.total"></td>
-              <td x-text="order.status"></td>
-              <td x-text="new Date(order.created_at).toLocaleDateString()"></td>
-              <td>
-                <select @change="updateOrderStatus(order.id, $event.target.value)">
-                  <option value="">Update status...</option>
-                  <option value="paid">Paid</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </td>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          </template>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <template x-for="product in products" :key="product.id">
+              <tr>
+                <td x-text="product.name"></td>
+                <td x-text="'$' + product.price"></td>
+                <td x-text="product.stock"></td>
+                <td x-text="product.active ? 'Active' : 'Inactive'"></td>
+                <td>
+                  <button @click="editProduct(product)">Edit</button>
+                  <button @click="deleteProduct(product.id)">Delete</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+
+        <!-- Add/Edit Form -->
+        <h3 x-text="form.id ? 'Edit Product' : 'Add New Product'"></h3>
+        <form @submit.prevent="saveProduct">
+          <input x-model="form.name" placeholder="Product name" required />
+          <textarea
+            x-model="form.description"
+            placeholder="Description"
+            rows="3"
+          ></textarea>
+          <input
+            x-model="form.price"
+            type="number"
+            step="0.01"
+            placeholder="Price"
+            required
+          />
+          <input
+            x-model="form.stock"
+            type="number"
+            placeholder="Stock quantity"
+            required
+          />
+          <input x-model="form.image_url" placeholder="Image URL" />
+          <div>
+            <button type="submit">Save Product</button>
+            <button type="button" @click="form = {}">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Orders Tab -->
+      <div x-show="activeTab === 'orders'">
+        <h2>Order Management</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="order in orders" :key="order.id">
+              <tr>
+                <td x-text="'#' + order.id"></td>
+                <td x-text="order.customer_email"></td>
+                <td x-text="order.items"></td>
+                <td x-text="'$' + order.total"></td>
+                <td x-text="order.status"></td>
+                <td
+                  x-text="new Date(order.created_at).toLocaleDateString()"
+                ></td>
+                <td>
+                  <select
+                    @change="updateOrderStatus(order.id, $event.target.value)"
+                  >
+                    <option value="">Update status...</option>
+                    <option value="paid">Paid</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <script>
-    function adminPanel() {
-      return {
-        authenticated: !!localStorage.getItem('adminToken'),
-        username: localStorage.getItem('adminUsername') || '',
-        credentials: { username: '', password: '' },
-        loginError: '',
-        activeTab: 'products',
-        products: [],
-        orders: [],
-        form: {},
+    <script>
+      function adminPanel() {
+        return {
+          authenticated: !!localStorage.getItem("adminToken"),
+          username: localStorage.getItem("adminUsername") || "",
+          credentials: { username: "", password: "" },
+          loginError: "",
+          activeTab: "products",
+          products: [],
+          orders: [],
+          form: {},
 
-        async init() {
-          if (this.authenticated) {
-            await this.loadProducts();
-          }
-        },
-
-        async login() {
-          this.loginError = '';
-          try {
-            const res = await fetch('/.netlify/functions/admin-login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.credentials)
-            });
-
-            if (res.ok) {
-              const { token, username } = await res.json();
-              localStorage.setItem('adminToken', token);
-              localStorage.setItem('adminUsername', username);
-              this.authenticated = true;
-              this.username = username;
+          async init() {
+            if (this.authenticated) {
               await this.loadProducts();
-            } else {
-              const error = await res.json();
-              this.loginError = error.error || 'Login failed';
             }
-          } catch (error) {
-            this.loginError = 'Network error. Please try again.';
-          }
-        },
+          },
 
-        logout() {
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('adminUsername');
-          this.authenticated = false;
-          this.username = '';
-          this.products = [];
-          this.orders = [];
-        },
+          async login() {
+            this.loginError = "";
+            try {
+              const res = await fetch("/.netlify/functions/admin-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(this.credentials),
+              });
 
-        async loadProducts() {
-          const token = localStorage.getItem('adminToken');
-          const res = await fetch('/.netlify/functions/admin-products', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          this.products = await res.json();
-        },
+              if (res.ok) {
+                const { token, username } = await res.json();
+                localStorage.setItem("adminToken", token);
+                localStorage.setItem("adminUsername", username);
+                this.authenticated = true;
+                this.username = username;
+                await this.loadProducts();
+              } else {
+                const error = await res.json();
+                this.loginError = error.error || "Login failed";
+              }
+            } catch (error) {
+              this.loginError = "Network error. Please try again.";
+            }
+          },
 
-        async loadOrders() {
-          const token = localStorage.getItem('adminToken');
-          const res = await fetch('/.netlify/functions/admin-orders', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          this.orders = await res.json();
-        },
+          logout() {
+            localStorage.removeItem("adminToken");
+            localStorage.removeItem("adminUsername");
+            this.authenticated = false;
+            this.username = "";
+            this.products = [];
+            this.orders = [];
+          },
 
-        async saveProduct() {
-          const token = localStorage.getItem('adminToken');
-          const method = this.form.id ? 'PUT' : 'POST';
-
-          await fetch('/.netlify/functions/admin-products', {
-            method,
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(this.form)
-          });
-
-          this.form = {};
-          await this.loadProducts();
-        },
-
-        editProduct(product) {
-          this.form = { ...product };
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        },
-
-        async deleteProduct(id) {
-          if (confirm('Delete this product? It will be hidden from customers.')) {
-            const token = localStorage.getItem('adminToken');
-            await fetch(`/.netlify/functions/admin-products?id=${id}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` }
+          async loadProducts() {
+            const token = localStorage.getItem("adminToken");
+            const res = await fetch("/.netlify/functions/admin-products", {
+              headers: { Authorization: `Bearer ${token}` },
             });
+            this.products = await res.json();
+          },
+
+          async loadOrders() {
+            const token = localStorage.getItem("adminToken");
+            const res = await fetch("/.netlify/functions/admin-orders", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            this.orders = await res.json();
+          },
+
+          async saveProduct() {
+            const token = localStorage.getItem("adminToken");
+            const method = this.form.id ? "PUT" : "POST";
+
+            await fetch("/.netlify/functions/admin-products", {
+              method,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(this.form),
+            });
+
+            this.form = {};
             await this.loadProducts();
-          }
-        },
+          },
 
-        async updateOrderStatus(orderId, status) {
-          if (!status) return;
+          editProduct(product) {
+            this.form = { ...product };
+            window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: "smooth",
+            });
+          },
 
-          const token = localStorage.getItem('adminToken');
-          await fetch('/.netlify/functions/admin-orders', {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ orderId, status })
-          });
+          async deleteProduct(id) {
+            if (
+              confirm("Delete this product? It will be hidden from customers.")
+            ) {
+              const token = localStorage.getItem("adminToken");
+              await fetch(`/.netlify/functions/admin-products?id=${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              await this.loadProducts();
+            }
+          },
 
-          await this.loadOrders();
-        }
-      };
-    }
-  </script>
-</body>
+          async updateOrderStatus(orderId, status) {
+            if (!status) return;
+
+            const token = localStorage.getItem("adminToken");
+            await fetch("/.netlify/functions/admin-orders", {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ orderId, status }),
+            });
+
+            await this.loadOrders();
+          },
+        };
+      }
+    </script>
+  </body>
 </html>
 ```
 
@@ -732,11 +822,13 @@ export default async (req: Request) => {
 
 This is actually **more secure** than a password-protected web UI because an
 attacker would need:
+
 - Your laptop (physical access)
 - Your GitHub credentials (to clone)
 - Your `.env.development` file (with Turso token)
 
 Compare to public admin panel where they only need:
+
 - To find the URL (automated scanning)
 - To bypass authentication (one attack surface)
 
@@ -749,12 +841,14 @@ TURSO_TOKEN=eyJhbGc...  # Get from: turso db tokens create little-bitta
 ```
 
 **Token security:**
+
 - Store in `.env.development` (gitignored)
 - Never commit to repository
 - Rotate periodically: `turso db tokens create little-bitta`
 - Revoke old tokens: `turso db tokens revoke <token-id>`
 
 **Backup access:**
+
 ```bash
 # Always keep Turso CLI access as backup
 turso auth login
@@ -782,7 +876,7 @@ products/
   "slug": "pistachio",
   "name": "Pistachio",
   "description": "Crunchy pistachios with a hint of honey",
-  "price": 10.00,
+  "price": 10.0,
   "stock": 50,
   "image": "/images/pistachio.jpg",
   "active": true
@@ -792,19 +886,17 @@ products/
 ```ts
 // scripts/sync-products.ts
 // Runs on build: syncs JSON files to Turso
-import { getDb } from '$lib/server/db';
-import { readdir, readFile } from 'fs/promises';
+import { getDb } from "$lib/server/db";
+import { readdir, readFile } from "fs/promises";
 
 async function syncProducts() {
   const db = getDb();
-  const files = await readdir('./products');
+  const files = await readdir("./products");
 
   for (const file of files) {
-    if (!file.endsWith('.json')) continue;
+    if (!file.endsWith(".json")) continue;
 
-    const product = JSON.parse(
-      await readFile(`./products/${file}`, 'utf-8')
-    );
+    const product = JSON.parse(await readFile(`./products/${file}`, "utf-8"));
 
     await db.execute({
       sql: `INSERT INTO products (slug, name, description, price, stock, image_url, active)
@@ -816,8 +908,15 @@ async function syncProducts() {
               stock = excluded.stock,
               image_url = excluded.image_url,
               active = excluded.active`,
-      args: [product.slug, product.name, product.description,
-             product.price, product.stock, product.image, product.active]
+      args: [
+        product.slug,
+        product.name,
+        product.description,
+        product.price,
+        product.stock,
+        product.image,
+        product.active,
+      ],
     });
   }
 }
@@ -826,6 +925,7 @@ syncProducts();
 ```
 
 **Workflow:**
+
 1. Edit `products/pistachio.json` (update stock)
 2. Commit: `git commit -m "Update pistachio stock to 25"`
 3. Push: `git push`
@@ -833,6 +933,7 @@ syncProducts();
 5. Product updated in Turso
 
 **Benefits:**
+
 - Version control for all changes (`git log products/`)
 - Can revert mistakes (`git revert abc123`)
 - No admin UI needed at all
@@ -844,6 +945,7 @@ syncProducts();
 **Recommended approach for Little Bitta:**
 
 **Option 1: Commit images to `/static/images/`**
+
 ```
 static/images/
 ├── pb-nutella.jpg
@@ -856,6 +958,7 @@ For a small product catalog (4-6 items), just commit images to git. Simple,
 version controlled, no external dependencies.
 
 **Option 2: Use Cloudinary (if catalog grows)**
+
 ```bash
 # Upload via CLI
 cloudinary upload products/pistachio.jpg
@@ -870,6 +973,7 @@ Automatic image optimization and CDN delivery for git-committed images.
 ## Security Checklist
 
 **Local-Only Admin:**
+
 - [x] Admin routes excluded from production build
 - [x] No public admin endpoints to scan
 - [x] No authentication system to bypass
@@ -882,6 +986,7 @@ Automatic image optimization and CDN delivery for git-committed images.
 - [ ] Backup access via Turso CLI (`turso auth login`)
 
 **Production Site (Customer-Facing):**
+
 - [x] HTTPS only (automatic with Netlify)
 - [x] No admin endpoints exposed
 - [x] Server-side input validation
@@ -929,12 +1034,14 @@ open http://localhost:5173/admin
 ### Daily Admin Tasks
 
 **Check orders:**
+
 ```bash
 bun run dev
 open http://localhost:5173/admin/orders
 ```
 
 **Update product stock:**
+
 ```bash
 bun run dev
 # Navigate to /admin/products
@@ -943,6 +1050,7 @@ bun run dev
 ```
 
 **Verify changes on live site:**
+
 ```bash
 open https://littlebitta.com
 ```
@@ -950,6 +1058,7 @@ open https://littlebitta.com
 ## Admin UI Features
 
 ### Product Management (Local UI)
+
 - View all products (server-rendered list)
 - Add new product (form POST)
 - Edit product details (form POST)
@@ -958,6 +1067,7 @@ open https://littlebitta.com
 - Direct Turso write (immediate changes)
 
 ### Order Management (Local UI)
+
 - View recent orders (read-only)
 - Filter by status/date
 - View order details
@@ -965,7 +1075,9 @@ open https://littlebitta.com
 - Direct Turso queries
 
 ### Analytics (Future)
+
 Can add analytics dashboard to local admin:
+
 - Revenue trends
 - Popular products
 - Low stock warnings
@@ -978,6 +1090,7 @@ All data queries run against production Turso, displayed in local UI.
 ### Attack Vectors Eliminated
 
 **Public Admin Panel (Traditional):**
+
 ```
 Attack Surface:
 ├── Automated scanning (bots find /admin)
@@ -1005,6 +1118,7 @@ Security Requirements:
 ```
 
 **Local-Only Admin (This Implementation):**
+
 ```
 Attack Surface:
 └── Physical access to developer laptop
@@ -1027,6 +1141,7 @@ Security Requirements:
 ### Risk Assessment
 
 **For Little Bitta Granola:**
+
 - **Asset value:** Low (granola inventory, customer emails)
 - **Attack motivation:** Very low (not a high-value target)
 - **Update frequency:** Low (seasonal flavors, stock updates)

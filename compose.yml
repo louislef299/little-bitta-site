@@ -5,9 +5,9 @@ services:
     container_name: bun
     env_file: ".env.production"
     environment:
-    - NODE_ENV=production
+      - NODE_ENV=production
     networks:
-    - net
+      - net
     depends_on:
       db:
         condition: service_healthy
@@ -16,32 +16,33 @@ services:
     image: caddy:2-alpine
     container_name: caddy
     ports:
-    - "443:443"
+      - "443:443"
     volumes:
-    - ./Caddyfile:/etc/caddy/Caddyfile
-    - caddy_data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
     environment:
-    - DOMAIN=${DOMAIN:-localhost}
+      - DOMAIN=${DOMAIN:-localhost}
     networks:
-    - net
+      - net
     depends_on:
-    - bun
+      - bun
 
   db:
     image: mysql:9.5
     container_name: db
     environment:
-    - MYSQL_ROOT_PASSWORD=password
-    - MYSQL_DATABASE=little_bitta
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=little_bitta
     ports:
-    - 3306:3306
+      - 3306:3306
     networks:
-    - net
+      - net
     volumes:
-    - data:/var/lib/mysql
-    - ./config/init-db:/docker-entrypoint-initdb.d:ro
+      - data:/var/lib/mysql
+      - ./config/init-db:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -1,4 +1,4 @@
-import { PUBLIC_STRIPE_KEY } from '$env/static/public';
+import { PUBLIC_STRIPE_KEY } from "$env/static/public";
 import { loadStripe } from "@stripe/stripe-js";
 import type { Stripe } from "@stripe/stripe-js";
 
@@ -10,20 +10,20 @@ export function isStripeSDKLoaded(): boolean {
 
 export async function loadStripeInstance() {
   if (stripeInstance) {
-    console.debug("[Stripe] SDK already loaded")
+    console.debug("[Stripe] SDK already loaded");
     return stripeInstance;
   }
 
   try {
     const stripe = await loadStripe(PUBLIC_STRIPE_KEY);
     if (!stripe) {
-      throw new Error('[Stripe] Failed to load SDK');
+      throw new Error("[Stripe] Failed to load SDK");
     }
     stripeInstance = stripe;
-    console.debug("[Stripe] Loaded SDK!")
+    console.debug("[Stripe] Loaded SDK!");
     return stripe;
   } catch (error) {
-    console.error('[Stripe] Failed to load SDK:', error);
+    console.error("[Stripe] Failed to load SDK:", error);
     throw error;
   }
 }

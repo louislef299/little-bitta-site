@@ -10,6 +10,7 @@
 Deliver fast, secure, resilient websites to small businesses using modern web development principles (progressive enhancement, server-side rendering, static generation) without the complexity, cost, and maintenance burden of traditional solutions.
 
 **Why It Works:**
+
 - Small businesses overpay for slow, complex WordPress sites that require constant maintenance
 - Modern tooling (SvelteKit, Netlify, Turso) enables dramatically lower costs
 - Resilient Web Design principles create sites that actually work and stay working
@@ -23,12 +24,14 @@ Local small businesses (10-50 employees) currently spending $5k-$20k on websites
 ### What Small Businesses Face Today
 
 **Expensive Agency Sites:**
+
 - $8,000-$15,000 initial cost
 - $100-$200/month maintenance
 - Slow to update (wait for agency)
 - Vendor lock-in
 
 **WordPress DIY:**
+
 - $500-$2,000 setup
 - $50-$100/month (hosting + plugins)
 - Constant security updates
@@ -36,6 +39,7 @@ Local small businesses (10-50 employees) currently spending $5k-$20k on websites
 - Hacking target (public admin panels)
 
 **Wix/Squarespace:**
+
 - $30-$100/month forever
 - Slow page loads (bad SEO)
 - Can't export/own your site
@@ -43,6 +47,7 @@ Local small businesses (10-50 employees) currently spending $5k-$20k on websites
 - Death by a thousand add-on charges
 
 **Common Pain Points:**
+
 - "My site is slow and I don't know why"
 - "It costs $200 every time I want to change my hours"
 - "The plugin update broke my checkout"
@@ -69,6 +74,7 @@ Following the philosophies outlined in [our architecture docs](cloud-arch.md):
 - **Images:** Cloudinary or static assets
 
 **Benefits:**
+
 - Sites load in under 2 seconds
 - No security vulnerabilities (no WordPress admin to hack)
 - No maintenance (static sites don't break)
@@ -82,6 +88,7 @@ Following the philosophies outlined in [our architecture docs](cloud-arch.md):
 **1. Cost Structure**
 
 Traditional WordPress Site (3-year cost):
+
 ```
 Year 1: $8,000 (build) + $1,800 (hosting/maintenance) = $9,800
 Year 2: $1,800
@@ -90,6 +97,7 @@ Total: $13,400
 ```
 
 Our Resilient Design Approach (3-year cost):
+
 ```
 Year 1: $3,500 (build) + $60 (hosting) = $3,560
 Year 2: $60
@@ -131,12 +139,14 @@ Total: $3,680
 ### Target Market
 
 **Primary: Local Small Businesses**
+
 - 10-50 employees
 - Annual revenue: $500k-$5M
 - Current bad/slow/expensive website
 - Need online presence but not full e-commerce platform
 
 **Industries:**
+
 - Restaurants & Food Service
 - Retail (local shops)
 - Professional Services (dentists, lawyers, accountants)
@@ -144,12 +154,14 @@ Total: $3,680
 - Artisan/Craft Businesses (like Little Bitta Granola)
 
 **Market Size (Local):**
+
 - 500+ small businesses in service area
 - Estimated 60% have websites
 - Of those, 80% are unhappy with current solution
 - **Addressable market:** ~240 businesses
 
 **Customer Acquisition:**
+
 - Start with father's business network (warm leads)
 - Chamber of Commerce connections
 - Local business groups
@@ -158,9 +170,11 @@ Total: $3,680
 ## Service Tiers
 
 ### Tier 1: Brochure Site
+
 **Price: $2,500-$3,500**
 
 **Includes:**
+
 - 5-10 pages (Home, About, Services, Contact, etc.)
 - Mobile-responsive design
 - Contact form
@@ -171,6 +185,7 @@ Total: $3,680
 - Custom domain
 
 **Ideal For:**
+
 - Restaurants (menu, hours, location)
 - Service businesses (what we do, contact us)
 - Consultants (portfolio, bio, services)
@@ -179,9 +194,11 @@ Total: $3,680
 **Timeline:** 2-3 weeks
 
 ### Tier 2: E-Commerce Site
+
 **Price: $4,500-$6,500**
 
 **Includes:**
+
 - Everything in Tier 1, plus:
 - Product catalog (up to 50 products)
 - Shopping cart
@@ -191,6 +208,7 @@ Total: $3,680
 - Local-only admin panel (secure by design)
 
 **Ideal For:**
+
 - Retail shops
 - Artisan products (see [Little Bitta case study](README.md))
 - Small online stores
@@ -199,9 +217,11 @@ Total: $3,680
 **Timeline:** 3-5 weeks
 
 ### Tier 3: Custom Application
+
 **Price: $8,000+**
 
 **Includes:**
+
 - Custom business logic
 - Booking/scheduling systems
 - Customer portals
@@ -209,6 +229,7 @@ Total: $3,680
 - Custom integrations (CRM, accounting, etc.)
 
 **Ideal For:**
+
 - Service businesses with complex scheduling
 - Membership organizations
 - Businesses with unique workflows
@@ -218,13 +239,16 @@ Total: $3,680
 ### Add-On Services
 
 **Content Updates:**
+
 - One-time: $50/update
 - Monthly retainer: $200/month (up to 4 updates)
 
 **Additional Pages:**
+
 - $200-300/page after initial build
 
 **Analytics & SEO:**
+
 - Setup: $500
 - Monthly reporting: $100/month
 
@@ -235,6 +259,7 @@ Total: $3,680
 **AI is a TOOL, not a FEATURE:**
 
 ✅ **How We Use AI:**
+
 - Code assistance (Claude Code, GitHub Copilot)
 - Content generation (initial drafts)
 - Image optimization
@@ -242,6 +267,7 @@ Total: $3,680
 - Development speed improvements
 
 ❌ **What We Don't Do:**
+
 - AI chatbots on client sites
 - "AI-powered" features that add complexity
 - Anything that requires API costs passed to clients
@@ -250,21 +276,25 @@ Total: $3,680
 ### Why No AI Chatbots?
 
 **Problem 1: Reliability**
+
 - AI hallucinates incorrect information
 - "Does your restaurant have vegan options?" → Wrong answer = angry customer
 - Legal liability for incorrect business information
 
 **Problem 2: Cost**
+
 - OpenAI API: $0.01-0.03 per conversation
 - 1,000 chats/month = $10-30/month (small business can't justify)
 - Costs scale unpredictably
 
 **Problem 3: Philosophy**
+
 - If users need a chatbot to find your hours/menu/prices, your site is poorly designed
 - Good information architecture > AI band-aid
 - Resilient web design means intuitive navigation, not intelligent assistance
 
 **Problem 4: Complexity**
+
 - Another thing to maintain
 - Another thing to break
 - Another thing to secure
@@ -279,6 +309,7 @@ Total: $3,680
 ### Phase 1: Proof of Concept (Months 1-2)
 
 **Little Bitta Granola Case Study**
+
 - Complete migration to resilient design principles
 - Document performance improvements
 - Track cost savings
@@ -286,6 +317,7 @@ Total: $3,680
 - Use as primary sales/portfolio piece
 
 **Success Metrics:**
+
 - Site loads in < 2 seconds
 - Hosting costs < $10/month
 - Zero maintenance issues first 6 months
@@ -294,16 +326,19 @@ Total: $3,680
 ### Phase 2: Beta Customers (Months 2-4)
 
 **Target: 3 Beta Clients**
+
 - Offer 30% discount ($2,500 → $1,750 for brochure sites)
 - In exchange: testimonials, case studies, referrals
 - Focus on businesses with BAD current websites (easy to show improvement)
 
 **Outreach:**
+
 - Father's business network (warm leads)
 - Local businesses he knows personally
 - Chamber of Commerce connections
 
 **Success Metrics:**
+
 - 3 completed projects
 - 3 testimonials gathered
 - At least 1 referral from beta customers
@@ -334,6 +369,7 @@ Total: $3,680
    - Creates viral growth loop
 
 **Success Metrics:**
+
 - 10-15 total clients by end of year 1
 - $40k-60k revenue year 1
 - 70%+ gross margin
@@ -342,6 +378,7 @@ Total: $3,680
 ### Phase 4: Regional Expansion (Year 2+)
 
 **Scale Options:**
+
 1. **Geographic expansion** - Adjacent markets
 2. **Vertical specialization** - Focus on one industry (restaurants, retail, etc.)
 3. **Platform play** - Productize common features, offer templated solutions
@@ -352,12 +389,14 @@ Total: $3,680
 ### Year 1 Conservative Estimate
 
 **Revenue:**
+
 - 6 Brochure sites @ $3,000 avg = $18,000
 - 4 E-commerce sites @ $5,500 avg = $22,000
 - 3 Content retainers @ $200/month × 6 months avg = $3,600
 - **Total: $43,600**
 
 **Costs:**
+
 - Development time (200 hours @ $50/hr opportunity cost) = $10,000
 - Tools/Software (Netlify, domains, etc.) = $1,000
 - Marketing/Sales = $2,000
@@ -369,6 +408,7 @@ Total: $3,680
 ### Year 2 Growth Scenario
 
 **Revenue:**
+
 - 15 Brochure sites @ $3,000 avg = $45,000
 - 8 E-commerce sites @ $5,500 avg = $44,000
 - 5 Content retainers @ $200/month × 12 months = $12,000
@@ -376,6 +416,7 @@ Total: $3,680
 - **Total: $121,000**
 
 **Costs:**
+
 - Development time (400 hours) = $20,000
 - Contractor help (100 hours @ $40/hr) = $4,000
 - Tools/Software = $2,500
@@ -388,28 +429,34 @@ Total: $3,680
 ## Risks & Mitigations
 
 ### Risk 1: Market Education
+
 **Risk:** Businesses don't understand why static sites are better
 **Mitigation:** Lead with tangible benefits (speed, cost, security) not technology
 
 ### Risk 2: Competition from Agencies
+
 **Risk:** Established agencies have relationships and reputation
 **Mitigation:** Compete on price, speed, and results. Target underserved small businesses agencies ignore.
 
 ### Risk 3: DIY Platforms (Wix/Squarespace)
+
 **Risk:** "Why not just use Wix for $30/month?"
 **Mitigation:** Show total cost of ownership (3-year comparison), performance difference, ownership benefits
 
 ### Risk 4: Scope Creep
+
 **Risk:** "Can you just add one more feature?" leads to unprofitable projects
 **Mitigation:** Fixed-price packages with clear scope. Additional features are separate quotes.
 
 ### Risk 5: Scaling Delivery
+
 **Risk:** Can't take on more clients without more developers
 **Mitigation:** Build reusable components, template common features, eventually hire/outsource
 
 ## Success Criteria
 
 ### 6-Month Goals
+
 - [ ] Complete Little Bitta Granola site (case study)
 - [ ] 3 beta customer projects completed
 - [ ] $10,000+ revenue
@@ -417,6 +464,7 @@ Total: $3,680
 - [ ] Decision point: Continue or pivot?
 
 ### 12-Month Goals
+
 - [ ] 10-15 total clients
 - [ ] $40,000+ revenue
 - [ ] 2+ referrals from existing clients
@@ -424,6 +472,7 @@ Total: $3,680
 - [ ] Net Promoter Score > 50
 
 ### 24-Month Goals
+
 - [ ] 25-30 total clients
 - [ ] $100,000+ revenue
 - [ ] Hire first contractor/employee
@@ -433,17 +482,20 @@ Total: $3,680
 ## Next Steps
 
 ### Immediate (This Week)
+
 1. **Complete Little Bitta site** - Finish implementation following [development docs](local-dev.md)
 2. **Document case study** - Before/after metrics, cost analysis
 3. **Market validation** - Father talks to 10 local businesses about their website pain points
 
 ### Short-Term (This Month)
+
 1. **Create pitch deck** - Use this document as foundation
 2. **Build basic marketing site** - Showcase services and Little Bitta case study
 3. **Identify 3 beta customers** - Warm leads from father's network
 4. **Set up business entity** - LLC formation, business bank account
 
 ### Medium-Term (Next Quarter)
+
 1. **Complete 3 beta projects** - Build portfolio
 2. **Gather testimonials** - Social proof for future sales
 3. **Refine offering** - Learn what works, adjust pricing/packages
@@ -452,6 +504,7 @@ Total: $3,680
 ## References
 
 This business plan is built on the technical foundation documented in:
+
 - [Cloud Architecture](cloud-arch.md) - Infrastructure and deployment strategy
 - [Customer-Facing Site](customer-facing.md) - Progressive enhancement approach
 - [Admin Panel](admin-ui.md) - Security-first local-only admin design

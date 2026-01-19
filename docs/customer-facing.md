@@ -15,6 +15,7 @@ The customer-facing site follows the **three-layer enhancement model**:
 **Core Principle:** Everyone is a non-JavaScript user until the JavaScript finishes loading. This site works without JavaScript and gets better with it.
 
 **Technology:**
+
 - **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML)
 - **Backend:** SvelteKit form actions + endpoints (serverless)
 - **Database:** Turso (SQLite-compatible)
@@ -77,6 +78,7 @@ Checkout Flow:
 ## Progressive Enhancement Benefits
 
 **Without JavaScript:**
+
 - View all products
 - Read descriptions and prices
 - Add items to cart (via form POST)
@@ -85,6 +87,7 @@ Checkout Flow:
 - View order confirmation
 
 **With JavaScript:**
+
 - Smooth page transitions
 - Optimistic UI updates
 - Client-side form validation
@@ -98,7 +101,7 @@ Checkout Flow:
 
 ```ts
 // src/routes/+page.server.ts
-import { getDb } from '$lib/db';
+import { getDb } from "$lib/db";
 
 export async function load() {
   const db = getDb();
@@ -108,18 +111,18 @@ export async function load() {
       `SELECT id, name, description, price, image_url, stock
        FROM products
        WHERE active = 1
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC`,
     );
 
     // This data is rendered as HTML on the server
     return {
-      products: result.rows
+      products: result.rows,
     };
   } catch (error) {
-    console.error('Failed to load products:', error);
+    console.error("Failed to load products:", error);
     return {
       products: [],
-      error: 'Failed to load products'
+      error: "Failed to load products",
     };
   }
 }
@@ -247,38 +250,38 @@ export async function load() {
 
 ```ts
 // src/routes/cart/+page.server.ts
-import { getDb } from '$lib/db';
+import { getDb } from "$lib/db";
 
 export const actions = {
   // Add to cart (works without JavaScript)
   add: async ({ request, cookies }) => {
     const data = await request.formData();
-    const productId = data.get('productId');
-    const name = data.get('name');
-    const price = data.get('price');
+    const productId = data.get("productId");
+    const name = data.get("name");
+    const price = data.get("price");
 
-    const cart = JSON.parse(cookies.get('cart') || '[]');
+    const cart = JSON.parse(cookies.get("cart") || "[]");
     cart.push({ productId, name, price, quantity: 1 });
-    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+    cookies.set("cart", JSON.stringify(cart), { path: "/" });
 
-    return { success: true, message: 'Added to cart!' };
+    return { success: true, message: "Added to cart!" };
   },
 
   // Remove from cart
   remove: async ({ request, cookies }) => {
     const data = await request.formData();
-    const index = Number(data.get('index'));
+    const index = Number(data.get("index"));
 
-    const cart = JSON.parse(cookies.get('cart') || '[]');
+    const cart = JSON.parse(cookies.get("cart") || "[]");
     cart.splice(index, 1);
-    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+    cookies.set("cart", JSON.stringify(cart), { path: "/" });
 
     return { success: true };
-  }
+  },
 };
 
 export async function load({ cookies }) {
-  const cart = JSON.parse(cookies.get('cart') || '[]');
+  const cart = JSON.parse(cookies.get("cart") || "[]");
   const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
 
   return { cart, total };
@@ -336,15 +339,15 @@ export async function load({ cookies }) {
 
 ```ts
 // src/routes/checkout/+page.server.ts
-import { getDb } from '$lib/db';
-import { getSquareClient } from '$lib/square';
-import { fail, redirect } from '@sveltejs/kit';
+import { getDb } from "$lib/db";
+import { getSquareClient } from "$lib/square";
+import { fail, redirect } from "@sveltejs/kit";
 
 export async function load({ cookies }) {
-  const cart = JSON.parse(cookies.get('cart') || '[]');
+  const cart = JSON.parse(cookies.get("cart") || "[]");
 
   if (cart.length === 0) {
-    throw redirect(303, '/cart');
+    throw redirect(303, "/cart");
   }
 
   const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
@@ -353,7 +356,7 @@ export async function load({ cookies }) {
     cart,
     total,
     squareAppId: process.env.SQUARE_APP_ID,
-    squareLocationId: process.env.SQUARE_LOCATION_ID
+    squareLocationId: process.env.SQUARE_LOCATION_ID,
   };
 }
 
@@ -363,17 +366,17 @@ export const actions = {
     const square = getSquareClient();
     const data = await request.formData();
 
-    const email = data.get('email') as string;
-    const sourceId = data.get('sourceId') as string;
+    const email = data.get("email") as string;
+    const sourceId = data.get("sourceId") as string;
 
     try {
-      const cart = JSON.parse(cookies.get('cart') || '[]');
+      const cart = JSON.parse(cookies.get("cart") || "[]");
       const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
 
       // Create order
       const orderResult = await db.execute({
         sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
-        args: [email, total]
+        args: [email, total],
       });
       const orderId = orderResult.lastInsertRowid;
 
@@ -381,7 +384,7 @@ export const actions = {
       for (const item of cart) {
         await db.execute({
           sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-          args: [orderId, item.productId, 1, item.price]
+          args: [orderId, item.productId, 1, item.price],
         });
       }
 
@@ -390,28 +393,27 @@ export const actions = {
         sourceId,
         amountMoney: {
           amount: BigInt(Math.round(total * 100)),
-          currency: "USD"
+          currency: "USD",
         },
-        idempotencyKey: `order-${orderId}-${Date.now()}`
+        idempotencyKey: `order-${orderId}-${Date.now()}`,
       });
 
       // Update order
       await db.execute({
         sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-        args: [payment.result.payment?.id, orderId]
+        args: [payment.result.payment?.id, orderId],
       });
 
       // Clear cart
-      cookies.delete('cart', { path: '/' });
+      cookies.delete("cart", { path: "/" });
 
       // Redirect to success page
       throw redirect(303, `/order/${orderId}/success`);
-
     } catch (error) {
       console.error("Checkout error:", error);
-      return fail(500, { error: 'Payment failed. Please try again.' });
+      return fail(500, { error: "Payment failed. Please try again." });
     }
-  }
+  },
 };
 ```
 
@@ -521,27 +523,27 @@ import { createClient } from "@libsql/client";
 
 const db = createClient({
   url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
+  authToken: process.env.TURSO_TOKEN!,
 });
 
 export default async (req: Request) => {
   try {
     const result = await db.execute(
-      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1"
+      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1",
     );
 
     return new Response(JSON.stringify(result.rows), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60" // Cache for 1 minute
-      }
+        "Cache-Control": "public, max-age=60", // Cache for 1 minute
+      },
     });
   } catch (error) {
     console.error("Failed to fetch products:", error);
     return new Response(JSON.stringify({ error: "Failed to load products" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
   }
 };
@@ -556,12 +558,12 @@ import { Client, Environment } from "square";
 
 const db = createClient({
   url: process.env.TURSO_URL!,
-  authToken: process.env.TURSO_TOKEN!
+  authToken: process.env.TURSO_TOKEN!,
 });
 
 const square = new Client({
   accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: Environment.Production
+  environment: Environment.Production,
 });
 
 export default async (req: Request) => {
@@ -573,14 +575,15 @@ export default async (req: Request) => {
     const { sourceId, items, email } = await req.json();
 
     // Calculate total
-    const total = items.reduce((sum: number, item: any) =>
-      sum + (parseFloat(item.price) * item.quantity), 0
+    const total = items.reduce(
+      (sum: number, item: any) => sum + parseFloat(item.price) * item.quantity,
+      0,
     );
 
     // Create order in database
     const orderResult = await db.execute({
       sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
-      args: [email, total]
+      args: [email, total],
     });
     const orderId = orderResult.lastInsertRowid;
 
@@ -588,7 +591,7 @@ export default async (req: Request) => {
     for (const item of items) {
       await db.execute({
         sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-        args: [orderId, item.productId, item.quantity, item.price]
+        args: [orderId, item.productId, item.quantity, item.price],
       });
     }
 
@@ -597,23 +600,22 @@ export default async (req: Request) => {
       sourceId,
       amountMoney: {
         amount: BigInt(Math.round(total * 100)), // Convert to cents
-        currency: "USD"
+        currency: "USD",
       },
-      idempotencyKey: `order-${orderId}-${Date.now()}`
+      idempotencyKey: `order-${orderId}-${Date.now()}`,
     });
 
     // Update order with payment ID
     await db.execute({
       sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-      args: [payment.result.payment?.id, orderId]
+      args: [payment.result.payment?.id, orderId],
     });
 
     return Response.json({
       success: true,
       orderId,
-      paymentId: payment.result.payment?.id
+      paymentId: payment.result.payment?.id,
     });
-
   } catch (error) {
     console.error("Checkout error:", error);
     return Response.json({ error: "Checkout failed" }, { status: 500 });
@@ -664,6 +666,7 @@ export default async (req: Request) => {
 ```
 
 **Key Difference from SPA:**
+
 - HTML rendered on server (not client)
 - Content accessible immediately (no "loading..." state)
 - Forms work via standard HTTP POST (not just AJAX)
@@ -672,27 +675,30 @@ export default async (req: Request) => {
 ## SEO Optimization
 
 ### Meta Tags
+
 ```html
 <title>Little Bitta Granola - Artisan Granola from Minnesota</title>
-<meta name="description" content="Premium handcrafted granola...">
-<meta property="og:title" content="Little Bitta Granola">
-<meta property="og:image" content="/images/og-image.jpg">
+<meta name="description" content="Premium handcrafted granola..." />
+<meta property="og:title" content="Little Bitta Granola" />
+<meta property="og:image" content="/images/og-image.jpg" />
 ```
 
 ### Schema.org Markup
+
 ```html
 <article itemscope itemtype="http://schema.org/Product">
   <h3 itemprop="name">Peanut Butter Nutella</h3>
   <p itemprop="description">Rich and creamy...</p>
   <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-    <meta itemprop="priceCurrency" content="USD">
+    <meta itemprop="priceCurrency" content="USD" />
     <span itemprop="price" content="10.00">$10.00</span>
-    <link itemprop="availability" href="http://schema.org/InStock">
+    <link itemprop="availability" href="http://schema.org/InStock" />
   </div>
 </article>
 ```
 
 ### Performance
+
 - Static HTML served from CDN (fast first load)
 - Minimal JavaScript (Svelte compiles to efficient vanilla JS)
 - Image optimization (use Cloudinary or imgix)
@@ -701,18 +707,21 @@ export default async (req: Request) => {
 ## Key Features
 
 ### Shopping Experience
+
 - Fast page loads (static HTML + CDN)
 - Interactive cart (no page refreshes)
 - Persistent cart (localStorage)
 - Mobile-responsive design
 
 ### Payment Processing
+
 - PCI-compliant (Square handles card data)
 - Multiple payment methods via Square
 - Secure checkout flow
 - Email receipts (via Square)
 
 ### SEO & Discoverability
+
 - Server-side rendered product data
 - Schema.org markup
 - Social media preview tags
@@ -720,12 +729,12 @@ export default async (req: Request) => {
 
 ## Performance Targets
 
-| Metric | Target | How |
-|--------|--------|-----|
-| First Contentful Paint | < 1s | Static HTML from CDN |
-| Time to Interactive | < 2s | Minimal JavaScript (Alpine.js) |
-| Lighthouse Score | > 90 | Optimized images, modern code |
-| SEO Score | 100 | Semantic HTML, meta tags, schema |
+| Metric                 | Target | How                              |
+| ---------------------- | ------ | -------------------------------- |
+| First Contentful Paint | < 1s   | Static HTML from CDN             |
+| Time to Interactive    | < 2s   | Minimal JavaScript (Alpine.js)   |
+| Lighthouse Score       | > 90   | Optimized images, modern code    |
+| SEO Score              | 100    | Semantic HTML, meta tags, schema |
 
 ## Related Documentation
 

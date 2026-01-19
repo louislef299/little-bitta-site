@@ -52,6 +52,7 @@ See [docs/cloud-arch.md](docs/cloud-arch.md) for complete architecture details.
 ## Design Principles
 
 **Three-Layer Enhancement:**
+
 ```
 Layer 1 (HTML): Semantic markup, works everywhere
 Layer 2 (CSS): Visual presentation, responsive design
@@ -59,11 +60,13 @@ Layer 3 (JavaScript): Interactivity, optimistic UI, transitions
 ```
 
 **Core Functionality (HTML only):**
+
 - View products and descriptions
 - Add items to cart via POST forms
 - Complete checkout and payment
 
 **Enhanced Experience (+ JavaScript):**
+
 - Smooth animations and transitions
 - Optimistic UI updates
 - Real-time cart preview

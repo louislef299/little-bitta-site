@@ -19,6 +19,7 @@ This architecture follows **Resilient Web Design** principles:
 ## Architecture Decision
 
 **Chosen Stack:**
+
 - **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML)
 - **Hosting:** Netlify (static + edge functions, CDN)
 - **Backend:** SvelteKit endpoints + Netlify Functions (serverless)
@@ -27,6 +28,7 @@ This architecture follows **Resilient Web Design** principles:
 - **Admin:** SvelteKit with authentication
 
 **Why This Stack:**
+
 1. SvelteKit enables progressive enhancement out of the box
 2. Server-side rendering for fast, resilient page loads
 3. Already familiar with Netlify (littlebitta.com is hosted there)
@@ -78,16 +80,19 @@ This architecture follows **Resilient Web Design** principles:
 ## Rendering Strategy
 
 **Server-Side Rendering (SSR):**
+
 - All pages render HTML on Netlify's edge
 - Users see content immediately (no loading spinners)
 - SEO-friendly, accessible, resilient
 
 **Static Site Generation (SSG):**
+
 - Product pages pre-rendered at build time
 - Served as static HTML (ultra-fast)
 - Regenerate on product updates
 
 **Progressive Enhancement:**
+
 - HTML works without JavaScript (forms POST to endpoints)
 - CSS adds responsive design and visual polish
 - JavaScript enhances with animations, optimistic UI, client-side validation
@@ -100,6 +105,7 @@ Turso is a cloud-hosted SQLite database with HTTP API. Same SQL syntax as
 `bun:sqlite`, but works in serverless environments.
 
 **Key features:**
+
 - SQLite-compatible (use same schema/queries)
 - Edge replication (fast worldwide)
 - Free tier: 500MB storage, 1B row reads/month
@@ -177,6 +183,7 @@ CREATE TABLE admin_users (
 ### Code Migration: SQLite → Turso
 
 **Before (local SQLite):**
+
 ```ts
 import { Database } from "bun:sqlite";
 const db = new Database("store.db");
@@ -185,12 +192,13 @@ const products = db.query("SELECT * FROM products").all();
 ```
 
 **After (Turso):**
+
 ```ts
 import { createClient } from "@libsql/client";
 
 const db = createClient({
   url: process.env.TURSO_URL,
-  authToken: process.env.TURSO_TOKEN
+  authToken: process.env.TURSO_TOKEN,
 });
 
 const result = await db.execute("SELECT * FROM products");
@@ -240,25 +248,25 @@ little-bitta-site/
 
 ```ts
 // src/routes/+page.server.ts
-import { getDb } from '$lib/db';
+import { getDb } from "$lib/db";
 
 export async function load() {
   const db = getDb();
 
   try {
     const result = await db.execute(
-      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1"
+      "SELECT id, name, description, price, image_url, stock FROM products WHERE active = 1",
     );
 
     // Return data that will be rendered as HTML
     return {
-      products: result.rows
+      products: result.rows,
     };
   } catch (error) {
-    console.error('Failed to load products:', error);
+    console.error("Failed to load products:", error);
     return {
       products: [],
-      error: 'Failed to load products'
+      error: "Failed to load products",
     };
   }
 }
@@ -295,23 +303,23 @@ export async function load() {
 
 ```ts
 // src/routes/cart/+page.server.ts
-import { getDb } from '$lib/db';
-import { fail } from '@sveltejs/kit';
+import { getDb } from "$lib/db";
+import { fail } from "@sveltejs/kit";
 
 export const actions = {
   // Add to cart action (works without JavaScript)
   add: async ({ request, cookies }) => {
     const data = await request.formData();
-    const productId = data.get('productId');
+    const productId = data.get("productId");
 
     // Get current cart from cookie
-    const cart = JSON.parse(cookies.get('cart') || '[]');
+    const cart = JSON.parse(cookies.get("cart") || "[]");
 
     // Add product to cart
     cart.push({ productId, quantity: 1 });
 
     // Save cart to cookie
-    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+    cookies.set("cart", JSON.stringify(cart), { path: "/" });
 
     return { success: true };
   },
@@ -319,29 +327,29 @@ export const actions = {
   // Remove from cart
   remove: async ({ request, cookies }) => {
     const data = await request.formData();
-    const index = Number(data.get('index'));
+    const index = Number(data.get("index"));
 
-    const cart = JSON.parse(cookies.get('cart') || '[]');
+    const cart = JSON.parse(cookies.get("cart") || "[]");
     cart.splice(index, 1);
-    cookies.set('cart', JSON.stringify(cart), { path: '/' });
+    cookies.set("cart", JSON.stringify(cart), { path: "/" });
 
     return { success: true };
-  }
+  },
 };
 
 export async function load({ cookies }) {
   const db = getDb();
-  const cartData = JSON.parse(cookies.get('cart') || '[]');
+  const cartData = JSON.parse(cookies.get("cart") || "[]");
 
   // Load full product details for cart items
   const cart = await Promise.all(
     cartData.map(async (item: any) => {
       const result = await db.execute({
         sql: "SELECT * FROM products WHERE id = ?",
-        args: [item.productId]
+        args: [item.productId],
       });
       return { ...result.rows[0], quantity: item.quantity };
-    })
+    }),
   );
 
   return { cart };
@@ -385,26 +393,26 @@ export async function load({ cookies }) {
 
 ```ts
 // src/routes/checkout/+page.server.ts
-import { getDb } from '$lib/db';
-import { getSquareClient } from '$lib/square';
-import { fail, redirect } from '@sveltejs/kit';
+import { getDb } from "$lib/db";
+import { getSquareClient } from "$lib/square";
+import { fail, redirect } from "@sveltejs/kit";
 
 export async function load({ cookies }) {
   // Server-render cart for checkout page
   const db = getDb();
-  const cartData = JSON.parse(cookies.get('cart') || '[]');
+  const cartData = JSON.parse(cookies.get("cart") || "[]");
 
   const cart = await Promise.all(
     cartData.map(async (item: any) => {
       const result = await db.execute({
         sql: "SELECT * FROM products WHERE id = ?",
-        args: [item.productId]
+        args: [item.productId],
       });
       return { ...result.rows[0], quantity: item.quantity };
-    })
+    }),
   );
 
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return { cart, total };
 }
@@ -416,22 +424,23 @@ export const actions = {
     const square = getSquareClient();
     const data = await request.formData();
 
-    const email = data.get('email') as string;
-    const sourceId = data.get('sourceId') as string; // From Square Web SDK
+    const email = data.get("email") as string;
+    const sourceId = data.get("sourceId") as string; // From Square Web SDK
 
     try {
       // Get cart from cookie
-      const cartData = JSON.parse(cookies.get('cart') || '[]');
+      const cartData = JSON.parse(cookies.get("cart") || "[]");
 
       // Calculate total
-      const total = cartData.reduce((sum: number, item: any) =>
-        sum + (item.price * item.quantity), 0
+      const total = cartData.reduce(
+        (sum: number, item: any) => sum + item.price * item.quantity,
+        0,
       );
 
       // Create order in database
       const orderResult = await db.execute({
         sql: "INSERT INTO orders (customer_email, total, status) VALUES (?, ?, 'pending')",
-        args: [email, total]
+        args: [email, total],
       });
       const orderId = orderResult.lastInsertRowid;
 
@@ -439,7 +448,7 @@ export const actions = {
       for (const item of cartData) {
         await db.execute({
           sql: "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-          args: [orderId, item.productId, item.quantity, item.price]
+          args: [orderId, item.productId, item.quantity, item.price],
         });
       }
 
@@ -448,28 +457,27 @@ export const actions = {
         sourceId,
         amountMoney: {
           amount: BigInt(Math.round(total * 100)),
-          currency: "USD"
+          currency: "USD",
         },
-        idempotencyKey: `order-${orderId}-${Date.now()}`
+        idempotencyKey: `order-${orderId}-${Date.now()}`,
       });
 
       // Update order status
       await db.execute({
         sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-        args: [payment.result.payment?.id, orderId]
+        args: [payment.result.payment?.id, orderId],
       });
 
       // Clear cart
-      cookies.delete('cart', { path: '/' });
+      cookies.delete("cart", { path: "/" });
 
       // Redirect to success page
       throw redirect(303, `/order/${orderId}/success`);
-
     } catch (error) {
       console.error("Checkout error:", error);
-      return fail(500, { error: 'Payment failed. Please try again.' });
+      return fail(500, { error: "Payment failed. Please try again." });
     }
-  }
+  },
 };
 ```
 
@@ -479,142 +487,161 @@ export const actions = {
 <!-- public/admin.html -->
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Admin - Little Bitta</title>
-  <script type="module" src="/admin.js"></script>
-</head>
-<body x-data="adminPanel()">
-  <!-- Login Form -->
-  <div x-show="!authenticated">
-    <h1>Admin Login</h1>
-    <form @submit.prevent="login">
-      <input x-model="credentials.username" placeholder="Username" required>
-      <input x-model="credentials.password" type="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-    </form>
-  </div>
+  <head>
+    <title>Admin - Little Bitta</title>
+    <script type="module" src="/admin.js"></script>
+  </head>
+  <body x-data="adminPanel()">
+    <!-- Login Form -->
+    <div x-show="!authenticated">
+      <h1>Admin Login</h1>
+      <form @submit.prevent="login">
+        <input x-model="credentials.username" placeholder="Username" required />
+        <input
+          x-model="credentials.password"
+          type="password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
 
-  <!-- Admin Dashboard -->
-  <div x-show="authenticated">
-    <h1>Product Management</h1>
+    <!-- Admin Dashboard -->
+    <div x-show="authenticated">
+      <h1>Product Management</h1>
 
-    <!-- Product List -->
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Price</th>
-          <th>Stock</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template x-for="product in products">
+      <!-- Product List -->
+      <table>
+        <thead>
           <tr>
-            <td x-text="product.name"></td>
-            <td x-text="'$' + product.price"></td>
-            <td x-text="product.stock"></td>
-            <td>
-              <button @click="editProduct(product)">Edit</button>
-              <button @click="deleteProduct(product.id)">Delete</button>
-            </td>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Actions</th>
           </tr>
-        </template>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <template x-for="product in products">
+            <tr>
+              <td x-text="product.name"></td>
+              <td x-text="'$' + product.price"></td>
+              <td x-text="product.stock"></td>
+              <td>
+                <button @click="editProduct(product)">Edit</button>
+                <button @click="deleteProduct(product.id)">Delete</button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
 
-    <!-- Add/Edit Form -->
-    <form @submit.prevent="saveProduct">
-      <input x-model="form.name" placeholder="Name" required>
-      <textarea x-model="form.description" placeholder="Description"></textarea>
-      <input x-model="form.price" type="number" step="0.01" placeholder="Price" required>
-      <input x-model="form.stock" type="number" placeholder="Stock" required>
-      <input x-model="form.image_url" placeholder="Image URL">
-      <button type="submit">Save</button>
-    </form>
+      <!-- Add/Edit Form -->
+      <form @submit.prevent="saveProduct">
+        <input x-model="form.name" placeholder="Name" required />
+        <textarea
+          x-model="form.description"
+          placeholder="Description"
+        ></textarea>
+        <input
+          x-model="form.price"
+          type="number"
+          step="0.01"
+          placeholder="Price"
+          required
+        />
+        <input
+          x-model="form.stock"
+          type="number"
+          placeholder="Stock"
+          required
+        />
+        <input x-model="form.image_url" placeholder="Image URL" />
+        <button type="submit">Save</button>
+      </form>
 
-    <button @click="logout">Logout</button>
-  </div>
+      <button @click="logout">Logout</button>
+    </div>
 
-  <script>
-    function adminPanel() {
-      return {
-        authenticated: !!localStorage.getItem('adminToken'),
-        credentials: { username: '', password: '' },
-        products: [],
-        form: {},
+    <script>
+      function adminPanel() {
+        return {
+          authenticated: !!localStorage.getItem("adminToken"),
+          credentials: { username: "", password: "" },
+          products: [],
+          form: {},
 
-        async init() {
-          if (this.authenticated) {
-            await this.loadProducts();
-          }
-        },
+          async init() {
+            if (this.authenticated) {
+              await this.loadProducts();
+            }
+          },
 
-        async login() {
-          const res = await fetch('/.netlify/functions/admin-login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.credentials)
-          });
-
-          if (res.ok) {
-            const { token } = await res.json();
-            localStorage.setItem('adminToken', token);
-            this.authenticated = true;
-            await this.loadProducts();
-          } else {
-            alert('Login failed');
-          }
-        },
-
-        logout() {
-          localStorage.removeItem('adminToken');
-          this.authenticated = false;
-        },
-
-        async loadProducts() {
-          const token = localStorage.getItem('adminToken');
-          const res = await fetch('/.netlify/functions/admin-products', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          this.products = await res.json();
-        },
-
-        async saveProduct() {
-          const token = localStorage.getItem('adminToken');
-          const method = this.form.id ? 'PUT' : 'POST';
-
-          await fetch('/.netlify/functions/admin-products', {
-            method,
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(this.form)
-          });
-
-          this.form = {};
-          await this.loadProducts();
-        },
-
-        editProduct(product) {
-          this.form = { ...product };
-        },
-
-        async deleteProduct(id) {
-          if (confirm('Delete this product?')) {
-            const token = localStorage.getItem('adminToken');
-            await fetch(`/.netlify/functions/admin-products?id=${id}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` }
+          async login() {
+            const res = await fetch("/.netlify/functions/admin-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(this.credentials),
             });
+
+            if (res.ok) {
+              const { token } = await res.json();
+              localStorage.setItem("adminToken", token);
+              this.authenticated = true;
+              await this.loadProducts();
+            } else {
+              alert("Login failed");
+            }
+          },
+
+          logout() {
+            localStorage.removeItem("adminToken");
+            this.authenticated = false;
+          },
+
+          async loadProducts() {
+            const token = localStorage.getItem("adminToken");
+            const res = await fetch("/.netlify/functions/admin-products", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            this.products = await res.json();
+          },
+
+          async saveProduct() {
+            const token = localStorage.getItem("adminToken");
+            const method = this.form.id ? "PUT" : "POST";
+
+            await fetch("/.netlify/functions/admin-products", {
+              method,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(this.form),
+            });
+
+            this.form = {};
             await this.loadProducts();
-          }
-        }
-      };
-    }
-  </script>
-</body>
+          },
+
+          editProduct(product) {
+            this.form = { ...product };
+          },
+
+          async deleteProduct(id) {
+            if (confirm("Delete this product?")) {
+              const token = localStorage.getItem("adminToken");
+              await fetch(`/.netlify/functions/admin-products?id=${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              await this.loadProducts();
+            }
+          },
+        };
+      }
+    </script>
+  </body>
 </html>
 ```
 
@@ -660,8 +687,8 @@ export const actions = {
 
 ```js
 // svelte.config.js
-import adapter from '@sveltejs/adapter-netlify';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import adapter from "@sveltejs/adapter-netlify";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -670,17 +697,17 @@ const config = {
   kit: {
     adapter: adapter({
       edge: false, // Use standard Netlify Functions
-      split: false // Single function for all routes
+      split: false, // Single function for all routes
     }),
 
     // Enable progressive enhancement
     csp: {
-      mode: 'auto',
+      mode: "auto",
       directives: {
-        'default-src': ['self']
-      }
-    }
-  }
+        "default-src": ["self"],
+      },
+    },
+  },
 };
 
 export default config;
@@ -716,12 +743,15 @@ Never store card numbers. Square handles everything.
 ### 2. Admin Authentication
 
 **Simple approach (launch):**
+
 ```ts
 // Environment variable: ADMIN_SECRET=your-secret-token
-const isAuthenticated = req.headers.get("Authorization") === `Bearer ${process.env.ADMIN_SECRET}`;
+const isAuthenticated =
+  req.headers.get("Authorization") === `Bearer ${process.env.ADMIN_SECRET}`;
 ```
 
 **Better approach (production):**
+
 - Use JWT tokens with expiration
 - Hash passwords with Bun.password.hash()
 - Implement rate limiting on login endpoint
@@ -764,15 +794,16 @@ function rateLimit(ip: string, maxRequests = 10, windowMs = 60000) {
 }
 
 // In function
-const ip = req.headers.get('x-forwarded-for') || 'unknown';
+const ip = req.headers.get("x-forwarded-for") || "unknown";
 if (!rateLimit(ip, 5, 60000)) {
-  return new Response('Too many requests', { status: 429 });
+  return new Response("Too many requests", { status: 429 });
 }
 ```
 
 ### 5. HTTPS & Headers
 
 Netlify provides:
+
 - Automatic SSL (Let's Encrypt)
 - DDoS protection
 - CDN caching
@@ -782,15 +813,16 @@ Netlify provides:
 
 ### Phase 1: Launch (Free)
 
-| Service | Free Tier | Limit | Cost |
-|---------|-----------|-------|------|
-| **Netlify** | 100GB bandwidth/month | ~200k page views | $0 |
-| **Turso** | 500MB storage, 1B row reads | ~100k orders | $0 |
-| **Square** | No monthly fee | 2.9% + $0.30 per transaction | Pay per transaction |
-| **Domain** | N/A | Already own littlebitta.com | $0 |
-| **Total** | | | **$0/mo** |
+| Service     | Free Tier                   | Limit                        | Cost                |
+| ----------- | --------------------------- | ---------------------------- | ------------------- |
+| **Netlify** | 100GB bandwidth/month       | ~200k page views             | $0                  |
+| **Turso**   | 500MB storage, 1B row reads | ~100k orders                 | $0                  |
+| **Square**  | No monthly fee              | 2.9% + $0.30 per transaction | Pay per transaction |
+| **Domain**  | N/A                         | Already own littlebitta.com  | $0                  |
+| **Total**   |                             |                              | **$0/mo**           |
 
 **Transaction costs (Square):**
+
 - $10 granola bag = $0.59 Square fee
 - Net revenue: $9.41 per sale
 - 100 sales/month = $941 revenue, $59 in fees
@@ -799,14 +831,15 @@ Netlify provides:
 
 **When you exceed free tier (likely 6-12 months out):**
 
-| Service | Paid Plan | Cost |
-|---------|-----------|------|
-| **Netlify** | Pro (1TB bandwidth) | $19/mo |
-| **Turso** | Scaler (25GB, unlimited reads) | $29/mo |
-| **Square** | Same (per transaction) | 2.9% + $0.30 |
-| **Total** | | **$48/mo** |
+| Service     | Paid Plan                      | Cost         |
+| ----------- | ------------------------------ | ------------ |
+| **Netlify** | Pro (1TB bandwidth)            | $19/mo       |
+| **Turso**   | Scaler (25GB, unlimited reads) | $29/mo       |
+| **Square**  | Same (per transaction)         | 2.9% + $0.30 |
+| **Total**   |                                | **$48/mo**   |
 
 **At this point, you're doing:**
+
 - 1M+ page views/month
 - 10k+ orders (= $100k revenue)
 - Infrastructure cost: 0.05% of revenue
@@ -815,11 +848,11 @@ Netlify provides:
 
 **When revenue > $10k/month, consider optimizations:**
 
-| Approach | Cost | When |
-|----------|------|------|
-| **Stay on Netlify + Turso** | $48/mo | Easiest, works for most |
-| **Move backend to Railway** | $5-20/mo | Want more control |
-| **Move to VPS (Hetzner)** | $5-10/mo | Traffic is huge |
+| Approach                    | Cost     | When                    |
+| --------------------------- | -------- | ----------------------- |
+| **Stay on Netlify + Turso** | $48/mo   | Easiest, works for most |
+| **Move backend to Railway** | $5-20/mo | Want more control       |
+| **Move to VPS (Hetzner)**   | $5-10/mo | Traffic is huge         |
 
 **Most likely:** Stay on Netlify + Turso. At $10k/mo revenue, $48/mo infrastructure is negligible.
 
@@ -862,6 +895,7 @@ Netlify provides:
 ### Traffic Thresholds
 
 **Netlify Free Tier (100GB/month):**
+
 ```
 Average page size: 500KB
 100GB = 200,000 page views/month
@@ -873,6 +907,7 @@ Stay free until $40k/month revenue
 ```
 
 **Turso Free Tier (1B row reads/month):**
+
 ```
 Per order: ~10 DB reads
 1B reads = 100M orders/month
@@ -881,6 +916,7 @@ You'll never hit this limit
 ```
 
 **Realistic timeline:**
+
 - Months 0-6: 0-100 orders/month ($0-1k revenue) → Free
 - Months 6-12: 100-500 orders/month ($1k-5k revenue) → Free
 - Months 12-18: 500-2000 orders/month ($5k-20k revenue) → Free
@@ -929,6 +965,7 @@ You'll never hit this limit
 ### Netlify Built-in
 
 Netlify provides:
+
 - Function logs (last 24 hours on free tier)
 - Bandwidth usage
 - Build logs
@@ -937,15 +974,18 @@ Netlify provides:
 ### Add-ons
 
 **Analytics (choose one):**
+
 - Netlify Analytics: $9/mo (server-side, accurate)
 - Plausible: $9/mo (privacy-friendly)
 - Google Analytics: Free (client-side)
 
 **Error tracking:**
+
 - Sentry: Free tier (5k events/month)
 - Rollbar: Free tier (5k events/month)
 
 **Uptime monitoring:**
+
 - UptimeRobot: Free (50 monitors, 5-min checks)
 - Better Uptime: Free tier
 
@@ -963,10 +1003,10 @@ try {
   // Send alert (if critical)
   if (process.env.SLACK_WEBHOOK) {
     await fetch(process.env.SLACK_WEBHOOK, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({
-        text: `🚨 Database error: ${error.message}`
-      })
+        text: `🚨 Database error: ${error.message}`,
+      }),
     });
   }
 
@@ -985,6 +1025,7 @@ try {
 ## Conclusion
 
 This architecture gives you:
+
 - **$0/mo to start** (free tiers)
 - **Zero server management** (fully managed)
 - **Familiar tools** (already use Netlify)

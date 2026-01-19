@@ -7,6 +7,7 @@ This document covers setting up and running the Little Bitta Granola site locall
 ## Overview
 
 **Local development stack:**
+
 - **SvelteKit** - SSR framework with progressive enhancement
 - **Vite** - Fast development server with HMR
 - **Netlify CLI** - Simulates Netlify deployment locally
@@ -15,6 +16,7 @@ This document covers setting up and running the Little Bitta Granola site locall
 - **TypeScript** - Type-safe development
 
 **Design Philosophy:**
+
 - Develop with progressive enhancement from the start
 - Test without JavaScript to ensure resilience
 - Server-render all pages for immediate content visibility
@@ -112,8 +114,8 @@ bun install
 
 ```js
 // svelte.config.js
-import adapter from '@sveltejs/adapter-netlify';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import adapter from "@sveltejs/adapter-netlify";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
 const config = {
   preprocess: vitePreprocess(),
@@ -121,9 +123,9 @@ const config = {
   kit: {
     adapter: adapter({
       edge: false,
-      split: false
-    })
-  }
+      split: false,
+    }),
+  },
 };
 
 export default config;
@@ -283,19 +285,19 @@ sqlite3 local/local.db "SELECT * FROM products;"
 ```ts
 // src/lib/server/db.ts
 import { createClient } from "@libsql/client";
-import { dev } from '$app/environment';
+import { dev } from "$app/environment";
 
 export const getDb = () => {
   if (dev) {
     // Development: Use local SQLite
     return createClient({
-      url: `file:${process.env.DB_PATH || './local/local.db'}`
+      url: `file:${process.env.DB_PATH || "./local/local.db"}`,
     });
   } else {
     // Production: Use Turso
     return createClient({
       url: process.env.TURSO_URL!,
-      authToken: process.env.TURSO_TOKEN!
+      authToken: process.env.TURSO_TOKEN!,
     });
   }
 };
@@ -315,6 +317,7 @@ export const getDb = () => {
 ### 2. Get Credentials
 
 **In Sandbox mode:**
+
 - **Access Token:** Credentials → Sandbox Access Token
 - **Location ID:** Locations → Copy the ID
 - **Application ID:** Credentials → Sandbox Application ID
@@ -325,11 +328,11 @@ Add these to your `.env` file.
 
 Use these test cards in Sandbox:
 
-| Card Number | Type | Result |
-|-------------|------|--------|
-| 4111 1111 1111 1111 | Visa | Success |
+| Card Number         | Type       | Result  |
+| ------------------- | ---------- | ------- |
+| 4111 1111 1111 1111 | Visa       | Success |
 | 5105 1051 0510 5100 | Mastercard | Success |
-| 3782 822463 10005 | Amex | Success |
+| 3782 822463 10005   | Amex       | Success |
 
 **CVV:** Any 3 digits
 **Expiry:** Any future date
@@ -342,13 +345,14 @@ Use these test cards in Sandbox:
 import { Client, Environment } from "square";
 
 export const getSquareClient = () => {
-  const environment = process.env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox;
+  const environment =
+    process.env.SQUARE_ENVIRONMENT === "production"
+      ? Environment.Production
+      : Environment.Sandbox;
 
   return new Client({
     accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-    environment
+    environment,
   });
 };
 ```
@@ -365,12 +369,14 @@ bun run dev
 ```
 
 **What happens:**
+
 - SvelteKit starts with HMR (Hot Module Replacement)
 - Pages are server-rendered on each request
 - Changes reflect instantly (no page refresh needed)
 - All routes available immediately
 
 **Available routes:**
+
 - `http://localhost:5173/` - Homepage (SSR)
 - `http://localhost:5173/cart` - Cart page (SSR)
 - `http://localhost:5173/checkout` - Checkout (SSR)
@@ -398,6 +404,7 @@ bun run dev
    - Navigate pages ✓
 
 **With JavaScript enabled:**
+
 - Smooth page transitions
 - Optimistic UI updates
 - No full page reloads
@@ -420,6 +427,7 @@ open http://localhost:8888/admin.html
 ```
 
 **Login:**
+
 - Username: `admin`
 - Password: `admin123`
 
@@ -453,6 +461,7 @@ curl http://localhost:8888/.netlify/functions/admin-products \
 **Error:** `Function not found`
 
 **Fix:**
+
 ```bash
 # Check netlify.toml has correct functions path
 cat netlify.toml | grep functions
@@ -469,6 +478,7 @@ netlify dev
 **Error:** `SQLITE_CANTOPEN: unable to open database file`
 
 **Fix:**
+
 ```bash
 # Ensure local/ directory exists
 mkdir -p local
@@ -485,6 +495,7 @@ ls -la local/local.db
 **Error:** `Payment failed`
 
 **Fix:**
+
 1. Verify you're using **Sandbox** environment in `.env`
 2. Check credentials are from Sandbox (not Production)
 3. Use test card numbers listed above
@@ -495,6 +506,7 @@ ls -la local/local.db
 **Error:** `Cannot find module...`
 
 **Fix:**
+
 ```bash
 # Install missing types
 bun install -D @types/node @netlify/functions
@@ -512,6 +524,7 @@ netlify dev
 **Error:** `Port 8888 is already in use`
 
 **Fix:**
+
 ```bash
 # Find and kill process
 lsof -ti:8888 | xargs kill -9
@@ -559,7 +572,7 @@ All `console.log()` in functions appear in terminal:
 ```ts
 // functions/products.ts
 export default async (req: Request) => {
-  console.log('Products requested'); // Shows in terminal
+  console.log("Products requested"); // Shows in terminal
   // ...
 };
 ```
@@ -634,14 +647,14 @@ Once local development is working:
 
 ## Quick Reference
 
-| Command | Purpose |
-|---------|---------|
-| `bun run dev` | Start local dev server |
-| `bun run db:seed` | Initialize local database |
-| `bun run db:reset` | Reset database to seed data |
-| `sqlite3 local/local.db` | Open database shell |
-| `netlify deploy` | Deploy to preview |
-| `netlify deploy --prod` | Deploy to production |
+| Command                  | Purpose                     |
+| ------------------------ | --------------------------- |
+| `bun run dev`            | Start local dev server      |
+| `bun run db:seed`        | Initialize local database   |
+| `bun run db:reset`       | Reset database to seed data |
+| `sqlite3 local/local.db` | Open database shell         |
+| `netlify deploy`         | Deploy to preview           |
+| `netlify deploy --prod`  | Deploy to production        |
 
 ---
 
