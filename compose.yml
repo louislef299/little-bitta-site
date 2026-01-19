@@ -3,12 +3,9 @@ services:
   bun:
     build: .
     container_name: bun
-    env_file: ".env.production.local"
+    env_file: ".env.production"
     environment:
     - NODE_ENV=production
-    secrets:
-    - psk
-    - ssk
     networks:
     - net
     depends_on:
@@ -19,13 +16,14 @@ services:
     image: caddy:2-alpine
     container_name: caddy
     ports:
-    - "80:80"
     - "443:443"
     volumes:
     - ./Caddyfile:/etc/caddy/Caddyfile
     - caddy_data:/data
     environment:
     - DOMAIN=${DOMAIN:-localhost}
+    networks:
+    - net
     depends_on:
     - bun
 
@@ -51,12 +49,6 @@ services:
 
 networks:
   net:
-
-secrets:
-   psk:
-     file: config/secrets/psk.txt
-   ssk:
-     file: config/secrets/ssk.txt
 
 volumes:
   caddy_data:

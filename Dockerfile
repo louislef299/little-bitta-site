@@ -20,4 +20,4 @@ RUN bun i -p --no-cache
 
 ARG ENV_TARGET=".env.production"
 EXPOSE 3000
-CMD ["bun", "--env-file", ${ENV_TARGET}, "./build/index.js"]
+CMD ["bun", "--env-file", "${ENV_TARGET}", "./build/index.js"]
