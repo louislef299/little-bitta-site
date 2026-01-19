@@ -13,14 +13,22 @@ run:
 
 # Build the Svelte project using vite
 build:
-    {{bun}} clean && {{bun}} b
+    {{bun}} b
 
 # Run the production version of the application
 prod: build
     docker compose up -d --wait db
+    TGT=localhost TGT_PORT=3000 caddy start --pidfile caddy.pid
     {{bun}} serve
+
+# Builds the production compose environment
+up:
+    docker compose up -d --build
+    docker compose ps -a
+    @echo "application is available at https://localhost:443"
 
 # Clean local development dependencies
 clean:
     {{bun}} clean
     docker compose down -v
+    -caddy stop

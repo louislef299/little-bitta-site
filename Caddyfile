@@ -1,5 +1,3 @@
-:443
-
-{$DOMAIN:localhost} {
-    reverse_proxy bun:3000
+{$DOMAIN:localhost}:443 {
+	reverse_proxy {$TGT:bun}:{$TGT_PORT:3000}
 }

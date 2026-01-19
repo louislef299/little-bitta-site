@@ -39,3 +39,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Docker
 config/secrets/*
+
+# Caddy
+caddy.pid
