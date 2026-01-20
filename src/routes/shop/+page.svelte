@@ -49,7 +49,7 @@
 
             <div class="item-footer">
                 <div class="item-info">
-                    ${item.price}/lb
+                    <i>${item.price}/lb</i>s
                 </div>
                 <AddToCart id={item.id} name={item.name} price={item.price} {drop} {capacity}/>
             </div>
