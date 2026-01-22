@@ -1,6 +1,6 @@
 # little-bitta-site
 
-Little Bitta Granola e-commerce website built with SvelteKit, Netlify, and Turso,
+Little Bitta Granola e-commerce website built with SvelteKit and Bun,
 following resilient web design principles.
 
 ## Design Philosophy
@@ -21,17 +21,38 @@ site works without JavaScript and gets better with it.
 
 ## Architecture
 
-This project uses a serverless cloud-native architecture with progressive
-enhancement:
+This project uses a container-based architecture with progressive enhancement:
 
-- **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML, client-side
-  hydration)
-- **Backend:** Netlify Functions + SvelteKit endpoints (serverless API)
-- **Database:** Turso (cloud-hosted SQLite)
+- **Frontend:** SvelteKit with SSR (server-rendered HTML, client-side hydration)
+- **Runtime:** Bun (via svelte-adapter-bun)
+- **Reverse Proxy:** Caddy (automatic HTTPS with mkcert certificates)
+- **Database:** MySQL
 - **Payments:** Stripe
-- **Hosting:** Netlify (static + edge functions)
+- **Deployment:** Docker Compose
 
 See [docs/cloud-arch.md](docs/cloud-arch.md) for complete architecture details.
+
+## Quick Start
+
+```bash
+# Install dependencies
+bun install
+
+# Install mkcert and set up local CA (one-time)
+brew install mkcert
+mkcert -install
+
+# Generate TLS certificates
+just cert
+
+# Run production build locally
+just prod
+
+# Or run in Docker
+just up
+```
+
+See [docs/local-dev.md](docs/local-dev.md) for detailed setup instructions.
 
 ## Documentation
 
