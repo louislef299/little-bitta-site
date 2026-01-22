@@ -72,6 +72,24 @@ function saveCart(items: OrderItem[]) {
   }
 }
 
+const CHECKOUT_CACHE_KEY = "stripe_checkout_cache";
+
+function clearCheckoutCache() {
+  if (browser) {
+    localStorage.removeItem(CHECKOUT_CACHE_KEY);
+  }
+}
+
+export function getCartHash(): string {
+  const items = getItems();
+  const data = items.map((i) => `${i.id}:${i.quantity}:${i.price}`).join("|");
+  return btoa(data);
+}
+
+export function getCheckoutCacheKey(): string {
+  return CHECKOUT_CACHE_KEY;
+}
+
 export function addToCart(item: Omit<OrderItem, "quantity">) {
   const existing = cart.items.find((i) => i.id === item.id);
   if (existing) {
@@ -80,16 +98,19 @@ export function addToCart(item: Omit<OrderItem, "quantity">) {
     cart.items.push({ ...item, quantity: 1 });
   }
   saveCart(cart.items);
+  clearCheckoutCache();
 }
 
 export function removeFromCart(itemId: number) {
   cart.items = cart.items.filter((i) => i.id !== itemId);
   saveCart(cart.items);
+  clearCheckoutCache();
 }
 
 export function emptyCart() {
   cart.items = [];
   localStorage.clear();
+  clearCheckoutCache();
 }
 
 export function updateQuantity(itemId: number, quantity: number) {
@@ -100,6 +121,7 @@ export function updateQuantity(itemId: number, quantity: number) {
     } else {
       item.quantity = quantity;
       saveCart(cart.items);
+      clearCheckoutCache();
     }
   }
 }

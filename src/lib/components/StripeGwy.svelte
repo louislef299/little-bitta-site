@@ -10,7 +10,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
-  import { getItems } from '$lib/cart/cart.svelte';
+  import { getItems, getCartHash, getCheckoutCacheKey } from '$lib/cart/cart.svelte';
   import type { 
     LoadActionsSuccess, Appearance, StripeCheckout 
   } from '@stripe/stripe-js';
@@ -32,7 +32,32 @@
     };
   }
 
+  interface CheckoutCache {
+    clientSecret: string;
+    cartHash: string;
+  }
+
   async function fetchClientSecret(): Promise<string> {
+    const currentHash = getCartHash();
+    const cacheKey = getCheckoutCacheKey();
+
+    // Check cache first
+    if (browser) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { clientSecret, cartHash } = JSON.parse(cached) as CheckoutCache;
+          if (cartHash === currentHash) {
+            console.debug('[StripeGwy] Using cached checkout session');
+            return clientSecret;
+          }
+        } catch (e) {
+          console.debug('[StripeGwy] Invalid cache, fetching new session');
+        }
+      }
+    }
+
+    // Fetch new session
     const response = await fetch("/api/stripe/checkout-session", {
       method: "POST",
       body: JSON.stringify({ items: getItems() }),
@@ -47,6 +72,15 @@
     const data = await response.json();
     if (!data.clientSecret || typeof data.clientSecret !== "string") {
       throw new Error("Invalid client secret received");
+    }
+
+    // Cache the new session
+    if (browser) {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        clientSecret: data.clientSecret,
+        cartHash: currentHash
+      }));
+      console.debug('[StripeGwy] Cached new checkout session');
     }
 
     return data.clientSecret;
