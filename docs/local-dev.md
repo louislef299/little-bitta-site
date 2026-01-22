@@ -12,7 +12,7 @@ This document covers setting up and running the Little Bitta Granola site locall
 - **Vite** - Fast development server with HMR
 - **Netlify CLI** - Simulates Netlify deployment locally
 - **SQLite** - Local database (instead of Turso)
-- **Square Sandbox** - Test payments without real money
+- **Stripe Test Mode** - Test payments without real money
 - **TypeScript** - Type-safe development
 
 **Design Philosophy:**
@@ -46,7 +46,7 @@ little-bitta-site/
 │   ├── lib/
 │   │   ├── server/              # Server-only code
 │   │   │   ├── db.ts           # Database client
-│   │   │   └── square.ts       # Square client
+│   │   │   └── stripe.ts       # Stripe client
 │   │   └── components/         # Reusable Svelte components
 │   └── app.html                # HTML template
 │
@@ -83,7 +83,7 @@ bun install
 # - @sveltejs/kit: SvelteKit framework
 # - @sveltejs/adapter-netlify: Netlify deployment adapter
 # - @libsql/client: Turso database client (SQLite-compatible)
-# - square: Square payment processing
+# - stripe: Stripe payment processing
 # - vite: Development server
 ```
 
@@ -190,11 +190,9 @@ DB_PATH=./local/local.db
 # Admin (simple token for development)
 ADMIN_SECRET=dev-secret-change-in-production
 
-# Square Sandbox (get from https://developer.squareup.com)
-SQUARE_ENVIRONMENT=sandbox
-SQUARE_ACCESS_TOKEN=your-sandbox-access-token-here
-SQUARE_LOCATION_ID=your-sandbox-location-id-here
-SQUARE_APP_ID=your-sandbox-app-id-here
+# Stripe Test Mode (get from https://dashboard.stripe.com/test/apikeys)
+STRIPE_SECRET_KEY=sk_test_...
+PUBLIC_STRIPE_KEY=pk_test_...
 ```
 
 ### Create .env.example Template
@@ -204,10 +202,8 @@ SQUARE_APP_ID=your-sandbox-app-id-here
 NODE_ENV=development
 DB_PATH=./local/local.db
 ADMIN_SECRET=your-admin-secret-here
-SQUARE_ENVIRONMENT=sandbox
-SQUARE_ACCESS_TOKEN=your-square-sandbox-token
-SQUARE_LOCATION_ID=your-square-location-id
-SQUARE_APP_ID=your-square-app-id
+STRIPE_SECRET_KEY=sk_test_...
+PUBLIC_STRIPE_KEY=pk_test_...
 ```
 
 ## Local Database Setup
@@ -233,7 +229,7 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_email TEXT NOT NULL,
   total REAL NOT NULL,
   status TEXT DEFAULT 'pending',
-  square_payment_id TEXT,
+  stripe_payment_id TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -305,54 +301,47 @@ export const getDb = () => {
 
 **Note:** Place database helpers in `src/lib/server/` to ensure they only run on the server (SvelteKit convention).
 
-## Square Sandbox Setup
+## Stripe Test Mode Setup
 
-### 1. Create Square Developer Account
+### 1. Create Stripe Account
 
-1. Go to https://developer.squareup.com
-2. Sign up for a developer account (free)
-3. Create a new application
-4. Switch to **Sandbox** mode (top right toggle)
+1. Go to https://dashboard.stripe.com
+2. Sign up for an account (free)
+3. Toggle to **Test mode** (top right toggle)
 
 ### 2. Get Credentials
 
-**In Sandbox mode:**
+**In Test mode:**
 
-- **Access Token:** Credentials → Sandbox Access Token
-- **Location ID:** Locations → Copy the ID
-- **Application ID:** Credentials → Sandbox Application ID
+- **Secret Key:** Developers → API Keys → Secret key (sk_test_...)
+- **Publishable Key:** Developers → API Keys → Publishable key (pk_test_...)
 
 Add these to your `.env` file.
 
 ### 3. Test Credit Cards
 
-Use these test cards in Sandbox:
+Use these test cards in Test mode:
 
 | Card Number         | Type       | Result  |
 | ------------------- | ---------- | ------- |
-| 4111 1111 1111 1111 | Visa       | Success |
-| 5105 1051 0510 5100 | Mastercard | Success |
+| 4242 4242 4242 4242 | Visa       | Success |
+| 5555 5555 5555 4444 | Mastercard | Success |
 | 3782 822463 10005   | Amex       | Success |
+| 4000 0000 0000 9995 | Visa       | Decline |
 
 **CVV:** Any 3 digits
 **Expiry:** Any future date
 **Postal Code:** Any valid code
 
-### 4. Square Client Helper
+### 4. Stripe Client Helper
 
 ```ts
-// src/square.ts
-import { Client, Environment } from "square";
+// src/lib/server/stripe.ts
+import Stripe from "stripe";
 
-export const getSquareClient = () => {
-  const environment =
-    process.env.SQUARE_ENVIRONMENT === "production"
-      ? Environment.Production
-      : Environment.Sandbox;
-
-  return new Client({
-    accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-    environment,
+export const getStripeClient = () => {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2024-12-18.acacia",
   });
 };
 ```
@@ -490,16 +479,16 @@ bun run db:reset
 ls -la local/local.db
 ```
 
-### Square Payment Fails
+### Stripe Payment Fails
 
 **Error:** `Payment failed`
 
 **Fix:**
 
-1. Verify you're using **Sandbox** environment in `.env`
-2. Check credentials are from Sandbox (not Production)
+1. Verify you're using **Test mode** credentials in `.env`
+2. Check credentials are from Test mode (not Live mode)
 3. Use test card numbers listed above
-4. Check Square Developer Dashboard for errors
+4. Check Stripe Dashboard for errors (https://dashboard.stripe.com/test/logs)
 
 ### TypeScript Compilation Errors
 
@@ -599,7 +588,7 @@ Netlify CLI automatically loads `.env` file. No need for `dotenv` package.
 
 ```ts
 // Access in functions
-const apiKey = process.env.SQUARE_ACCESS_TOKEN;
+const apiKey = process.env.STRIPE_SECRET_KEY;
 ```
 
 ## Git Configuration
@@ -637,7 +626,7 @@ Once local development is working:
 3. **Test end-to-end** - Full checkout flow locally
 4. **Deploy to Netlify** - `netlify deploy --prod`
 5. **Switch to Turso** - Replace local SQLite with production Turso
-6. **Use Square Production** - Switch from Sandbox to live payments
+6. **Use Stripe Live Mode** - Switch from test mode to live payments
 
 ## Related Documentation
 

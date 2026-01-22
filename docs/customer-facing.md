@@ -19,7 +19,7 @@ The customer-facing site follows the **three-layer enhancement model**:
 - **Frontend:** SvelteKit with SSR/SSG (server-rendered HTML)
 - **Backend:** SvelteKit form actions + endpoints (serverless)
 - **Database:** Turso (SQLite-compatible)
-- **Payments:** Square Web Payments SDK
+- **Payments:** Stripe Custom Checkout
 - **Hosting:** Netlify (CDN, SSL, edge functions)
 
 ## Architecture Diagram
@@ -43,7 +43,7 @@ The customer-facing site follows the **three-layer enhancement model**:
                  │           │          │
                  ▼           ▼          ▼
             ┌────────┐  ┌───────┐  ┌────────┐
-            │ Turso  │  │Square │  │ Email  │
+            │ Turso  │  │Stripe │  │ Email  │
             │  (DB)  │  │  API  │  │Service │
             └────────┘  └───────┘  └────────┘
 ```
@@ -71,7 +71,7 @@ JavaScript Loads (Enhancement):
 
 Checkout Flow:
   → Works without JS via form submission
-  → Enhanced with Square Web Payment SDK
+  → Enhanced with Stripe Custom Checkout
   → Server processes payment via SvelteKit action
 ```
 
@@ -340,7 +340,7 @@ export async function load({ cookies }) {
 ```ts
 // src/routes/checkout/+page.server.ts
 import { getDb } from "$lib/db";
-import { getSquareClient } from "$lib/square";
+import { getStripeClient } from "$lib/stripe";
 import { fail, redirect } from "@sveltejs/kit";
 
 export async function load({ cookies }) {
@@ -355,19 +355,18 @@ export async function load({ cookies }) {
   return {
     cart,
     total,
-    squareAppId: process.env.SQUARE_APP_ID,
-    squareLocationId: process.env.SQUARE_LOCATION_ID,
+    stripePublicKey: process.env.PUBLIC_STRIPE_KEY,
   };
 }
 
 export const actions = {
   checkout: async ({ request, cookies }) => {
     const db = getDb();
-    const square = getSquareClient();
+    const stripe = getStripeClient();
     const data = await request.formData();
 
     const email = data.get("email") as string;
-    const sourceId = data.get("sourceId") as string;
+    const paymentIntentId = data.get("paymentIntentId") as string;
 
     try {
       const cart = JSON.parse(cookies.get("cart") || "[]");
@@ -388,20 +387,17 @@ export const actions = {
         });
       }
 
-      // Process payment
-      const payment = await square.paymentsApi.createPayment({
-        sourceId,
-        amountMoney: {
-          amount: BigInt(Math.round(total * 100)),
-          currency: "USD",
-        },
-        idempotencyKey: `order-${orderId}-${Date.now()}`,
-      });
+      // Verify payment with Stripe
+      const payment = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (payment.status !== "succeeded") {
+        throw new Error("Payment not completed");
+      }
 
       // Update order
       await db.execute({
-        sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-        args: [payment.result.payment?.id, orderId],
+        sql: "UPDATE orders SET stripe_payment_id = ?, status = 'paid' WHERE id = ?",
+        args: [payment.id, orderId],
       });
 
       // Clear cart
@@ -426,35 +422,44 @@ export const actions = {
   export let data;
   export let form;
 
-  let squareCard;
+  let stripe;
+  let cardElement;
   let processing = false;
 
-  // Progressive enhancement: Square SDK is optional
+  // Progressive enhancement: Stripe SDK is optional
   onMount(async () => {
-    if (typeof Square !== 'undefined') {
-      const payments = Square.payments(data.squareAppId, data.squareLocationId);
-      squareCard = await payments.card();
-      await squareCard.attach('#card-container');
+    if (typeof Stripe !== 'undefined') {
+      stripe = Stripe(data.stripePublicKey);
+      const elements = stripe.elements();
+      cardElement = elements.create('card');
+      cardElement.mount('#card-element');
     }
   });
 
   async function handleSubmit(event) {
     processing = true;
 
-    if (squareCard) {
-      // With JavaScript: tokenize card with Square
+    if (stripe && cardElement) {
+      // With JavaScript: process payment with Stripe
       event.preventDefault();
-      const result = await squareCard.tokenize();
 
-      if (result.status === 'OK') {
-        const formData = new FormData(event.target);
-        formData.append('sourceId', result.token);
+      // Create PaymentIntent on server
+      const { clientSecret } = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        body: JSON.stringify({ amount: data.total * 100 })
+      }).then(r => r.json());
 
-        // Submit form programmatically
-        event.target.submit();
-      } else {
+      const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardElement }
+      });
+
+      if (error) {
         processing = false;
-        alert('Card validation failed');
+        alert('Payment failed: ' + error.message);
+      } else {
+        const formData = new FormData(event.target);
+        formData.append('paymentIntentId', paymentIntent.id);
+        event.target.submit();
       }
     }
     // Without JavaScript: form submits normally
@@ -462,7 +467,7 @@ export const actions = {
 </script>
 
 <svelte:head>
-  <script src="https://web.squarecdn.com/v1/square.js"></script>
+  <script src="https://js.stripe.com/v3/"></script>
 </svelte:head>
 
 <div class="container">
@@ -494,10 +499,10 @@ export const actions = {
     </label>
 
     <h2>Payment</h2>
-    <!-- Square card container (enhanced with JS) -->
-    <div id="card-container"></div>
+    <!-- Stripe card element (enhanced with JS) -->
+    <div id="card-element"></div>
 
-    <!-- Fallback: works without Square SDK -->
+    <!-- Fallback: works without Stripe SDK -->
     <noscript>
       <p>JavaScript is required for payment processing. Please enable JavaScript to complete your order.</p>
     </noscript>
@@ -554,16 +559,15 @@ export default async (req: Request) => {
 ```ts
 // netlify/functions/checkout.ts
 import { createClient } from "@libsql/client";
-import { Client, Environment } from "square";
+import Stripe from "stripe";
 
 const db = createClient({
   url: process.env.TURSO_URL!,
   authToken: process.env.TURSO_TOKEN!,
 });
 
-const square = new Client({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: Environment.Production,
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-12-18.acacia",
 });
 
 export default async (req: Request) => {
@@ -572,7 +576,7 @@ export default async (req: Request) => {
   }
 
   try {
-    const { sourceId, items, email } = await req.json();
+    const { paymentIntentId, items, email } = await req.json();
 
     // Calculate total
     const total = items.reduce(
@@ -595,26 +599,23 @@ export default async (req: Request) => {
       });
     }
 
-    // Process payment with Square
-    const payment = await square.paymentsApi.createPayment({
-      sourceId,
-      amountMoney: {
-        amount: BigInt(Math.round(total * 100)), // Convert to cents
-        currency: "USD",
-      },
-      idempotencyKey: `order-${orderId}-${Date.now()}`,
-    });
+    // Verify payment with Stripe
+    const payment = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (payment.status !== "succeeded") {
+      throw new Error("Payment not completed");
+    }
 
     // Update order with payment ID
     await db.execute({
-      sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-      args: [payment.result.payment?.id, orderId],
+      sql: "UPDATE orders SET stripe_payment_id = ?, status = 'paid' WHERE id = ?",
+      args: [payment.id, orderId],
     });
 
     return Response.json({
       success: true,
       orderId,
-      paymentId: payment.result.payment?.id,
+      paymentId: payment.id,
     });
   } catch (error) {
     console.error("Checkout error:", error);
@@ -651,14 +652,14 @@ export default async (req: Request) => {
    ↓
 6. Checkout page
    - Server renders cart summary from cookie
-   - Square SDK enhances payment form
-   - Form works via POST even without Square
+   - Stripe SDK enhances payment form
+   - Form works via POST even without Stripe
    ↓
 7. Payment processing
-   - Square tokenizes card (client-side)
+   - Stripe tokenizes card (client-side)
    - Form submits to SvelteKit action
    - Server creates order in Turso
-   - Server processes payment with Square API
+   - Server processes payment with Stripe API
    ↓
 8. Order complete
    - Server redirects to success page
@@ -715,10 +716,10 @@ export default async (req: Request) => {
 
 ### Payment Processing
 
-- PCI-compliant (Square handles card data)
-- Multiple payment methods via Square
+- PCI-compliant (Stripe handles card data)
+- Multiple payment methods via Stripe
 - Secure checkout flow
-- Email receipts (via Square)
+- Email receipts (via Stripe)
 
 ### SEO & Discoverability
 

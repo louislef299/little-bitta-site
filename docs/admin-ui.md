@@ -116,7 +116,7 @@ CREATE TABLE orders (
   customer_email TEXT NOT NULL,
   total REAL NOT NULL,
   status TEXT DEFAULT 'pending', -- pending, paid, shipped, completed
-  square_payment_id TEXT,
+  stripe_payment_id TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -990,7 +990,7 @@ Automatic image optimization and CDN delivery for git-committed images.
 - [x] HTTPS only (automatic with Netlify)
 - [x] No admin endpoints exposed
 - [x] Server-side input validation
-- [x] Square handles payment data (PCI-compliant)
+- [x] Stripe handles payment data (PCI-compliant)
 - [x] Environment variables for secrets
 - [ ] Monitor Netlify logs for anomalies
 - [ ] Test checkout flow regularly
@@ -1013,11 +1013,9 @@ cat > .env.development <<EOF
 TURSO_URL=libsql://little-bitta-prod.turso.io
 TURSO_TOKEN=your-production-token
 
-# Square sandbox for testing checkout locally
-SQUARE_ENVIRONMENT=sandbox
-SQUARE_ACCESS_TOKEN=your-sandbox-token
-SQUARE_LOCATION_ID=your-location-id
-SQUARE_APP_ID=your-app-id
+# Stripe test mode for testing checkout locally
+STRIPE_SECRET_KEY=sk_test_...
+PUBLIC_STRIPE_KEY=pk_test_...
 EOF
 
 # 4. Get Turso token (if you don't have it)

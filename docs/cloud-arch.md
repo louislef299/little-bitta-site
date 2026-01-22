@@ -24,7 +24,7 @@ This architecture follows **Resilient Web Design** principles:
 - **Hosting:** Netlify (static + edge functions, CDN)
 - **Backend:** SvelteKit endpoints + Netlify Functions (serverless)
 - **Database:** Turso (SQLite-compatible, cloud-hosted)
-- **Payments:** Square
+- **Payments:** Stripe
 - **Admin:** SvelteKit with authentication
 
 **Why This Stack:**
@@ -72,7 +72,7 @@ This architecture follows **Resilient Web Design** principles:
        │          │            │         │
        ▼          ▼            ▼         ▼
   ┌────────┐ ┌───────┐   ┌────────┐ ┌──────┐
-  │ Turso  │ │Square │   │ Email  │ │ Logs │
+  │ Turso  │ │Stripe │   │ Email  │ │ Logs │
   │  (DB)  │ │  Pay  │   │Service │ │      │
   └────────┘ └───────┘   └────────┘ └──────┘
 ```
@@ -156,7 +156,7 @@ CREATE TABLE orders (
   customer_email TEXT NOT NULL,
   total REAL NOT NULL,
   status TEXT DEFAULT 'pending',
-  square_payment_id TEXT,
+  stripe_payment_id TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -230,7 +230,7 @@ little-bitta-site/
 │   │       └── +page.server.ts    # Admin actions
 │   ├── lib/
 │   │   ├── db.ts                  # Turso client
-│   │   ├── square.ts              # Square client
+│   │   ├── stripe.ts              # Stripe client
 │   │   └── components/            # Reusable components
 │   └── app.html                   # HTML template
 ├── static/                  # Static assets
@@ -389,12 +389,12 @@ export async function load({ cookies }) {
 {/if}
 ```
 
-## Square Payment Integration
+## Stripe Payment Integration
 
 ```ts
 // src/routes/checkout/+page.server.ts
 import { getDb } from "$lib/db";
-import { getSquareClient } from "$lib/square";
+import { getStripeClient } from "$lib/stripe";
 import { fail, redirect } from "@sveltejs/kit";
 
 export async function load({ cookies }) {
@@ -421,11 +421,11 @@ export const actions = {
   // Process payment (works without JavaScript via form submission)
   checkout: async ({ request, cookies }) => {
     const db = getDb();
-    const square = getSquareClient();
+    const stripe = getStripeClient();
     const data = await request.formData();
 
     const email = data.get("email") as string;
-    const sourceId = data.get("sourceId") as string; // From Square Web SDK
+    const paymentIntentId = data.get("paymentIntentId") as string; // From Stripe
 
     try {
       // Get cart from cookie
@@ -452,20 +452,17 @@ export const actions = {
         });
       }
 
-      // Process payment with Square
-      const payment = await square.paymentsApi.createPayment({
-        sourceId,
-        amountMoney: {
-          amount: BigInt(Math.round(total * 100)),
-          currency: "USD",
-        },
-        idempotencyKey: `order-${orderId}-${Date.now()}`,
-      });
+      // Process payment with Stripe
+      const payment = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (payment.status !== "succeeded") {
+        throw new Error("Payment not completed");
+      }
 
       // Update order status
       await db.execute({
-        sql: "UPDATE orders SET square_payment_id = ?, status = 'paid' WHERE id = ?",
-        args: [payment.result.payment?.id, orderId],
+        sql: "UPDATE orders SET stripe_payment_id = ?, status = 'paid' WHERE id = ?",
+        args: [payment.id, orderId],
       });
 
       // Clear cart
@@ -717,28 +714,29 @@ export default config;
 
 ### 1. Payment Data (Critical)
 
-With Square, you **never handle credit card data**. Use Square's Web Payment SDK:
+With Stripe, you **never handle credit card data**. Use Stripe's Custom Checkout:
 
 ```html
-<script src="https://web.squarecdn.com/v1/square.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <script>
-  const payments = Square.payments(appId, locationId);
-  const card = await payments.card();
-  await card.attach('#card-container');
+  const stripe = Stripe(publishableKey);
+  const elements = stripe.elements();
+  const cardElement = elements.create('card');
+  cardElement.mount('#card-element');
 
-  // On checkout
-  const result = await card.tokenize();
-  const sourceId = result.token; // Send this to your backend
-
-  // Backend processes payment with sourceId
-  await fetch('/.netlify/functions/checkout', {
+  // On checkout - create PaymentIntent on server, confirm on client
+  const { clientSecret } = await fetch('/api/create-payment-intent', {
     method: 'POST',
-    body: JSON.stringify({ sourceId, items, email })
+    body: JSON.stringify({ items, email })
+  }).then(r => r.json());
+
+  const { paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+    payment_method: { card: cardElement }
   });
 </script>
 ```
 
-Never store card numbers. Square handles everything.
+Never store card numbers. Stripe handles everything.
 
 ### 2. Admin Authentication
 
@@ -763,8 +761,8 @@ const isAuthenticated =
 # Set in Netlify dashboard: Site settings → Environment variables
 TURSO_URL=libsql://little-bitta-[org].turso.io
 TURSO_TOKEN=eyJhbGc...
-SQUARE_ACCESS_TOKEN=sq0atp-...
-SQUARE_LOCATION_ID=L...
+STRIPE_SECRET_KEY=sk_live_...
+PUBLIC_STRIPE_KEY=pk_live_...
 ADMIN_SECRET=your-secret-here
 ```
 
@@ -817,13 +815,13 @@ Netlify provides:
 | ----------- | --------------------------- | ---------------------------- | ------------------- |
 | **Netlify** | 100GB bandwidth/month       | ~200k page views             | $0                  |
 | **Turso**   | 500MB storage, 1B row reads | ~100k orders                 | $0                  |
-| **Square**  | No monthly fee              | 2.9% + $0.30 per transaction | Pay per transaction |
+| **Stripe**  | No monthly fee              | 2.9% + $0.30 per transaction | Pay per transaction |
 | **Domain**  | N/A                         | Already own littlebitta.com  | $0                  |
 | **Total**   |                             |                              | **$0/mo**           |
 
-**Transaction costs (Square):**
+**Transaction costs (Stripe):**
 
-- $10 granola bag = $0.59 Square fee
+- $10 granola bag = $0.59 Stripe fee
 - Net revenue: $9.41 per sale
 - 100 sales/month = $941 revenue, $59 in fees
 
@@ -835,7 +833,7 @@ Netlify provides:
 | ----------- | ------------------------------ | ------------ |
 | **Netlify** | Pro (1TB bandwidth)            | $19/mo       |
 | **Turso**   | Scaler (25GB, unlimited reads) | $29/mo       |
-| **Square**  | Same (per transaction)         | 2.9% + $0.30 |
+| **Stripe**  | Same (per transaction)         | 2.9% + $0.30 |
 | **Total**   |                                | **$48/mo**   |
 
 **At this point, you're doing:**
@@ -931,13 +929,13 @@ You'll never hit this limit
 
 - [ ] Create Turso database
 - [ ] Set up Turso tables (products, orders, etc.)
-- [ ] Create Square account (sandbox for testing)
-- [ ] Get Square API credentials
+- [ ] Create Stripe account (test mode for testing)
+- [ ] Get Stripe API credentials
 - [ ] Set up Netlify site (import from GitHub)
 - [ ] Configure environment variables in Netlify
 - [ ] Deploy functions
-- [ ] Test payment flow in Square sandbox
-- [ ] Switch to Square production
+- [ ] Test payment flow in Stripe test mode
+- [ ] Switch to Stripe live mode
 - [ ] Configure custom domain (littlebitta.com)
 
 ### Pre-Launch
@@ -1018,7 +1016,7 @@ try {
 
 - [Netlify Functions Docs](https://docs.netlify.com/functions/overview/)
 - [Turso Quickstart](https://docs.turso.tech/quickstart)
-- [Square Web Payments SDK](https://developer.squareup.com/docs/web-payments/overview)
+- [Stripe Payments Docs](https://stripe.com/docs/payments)
 - [Svelte Documentation](https://svelte.dev/)
 - [Bun Runtime](https://bun.sh/docs)
 
@@ -1031,6 +1029,6 @@ This architecture gives you:
 - **Familiar tools** (already use Netlify)
 - **Clear growth path** (scales with revenue)
 - **SQLite familiarity** (Turso is compatible)
-- **Production-ready security** (SSL, DDoS, PCI via Square)
+- **Production-ready security** (SSL, DDoS, PCI via Stripe)
 
 Start building, launch fast, scale when revenue justifies it. Focus on selling granola, not infrastructure.

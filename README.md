@@ -28,7 +28,7 @@ enhancement:
   hydration)
 - **Backend:** Netlify Functions + SvelteKit endpoints (serverless API)
 - **Database:** Turso (cloud-hosted SQLite)
-- **Payments:** Square
+- **Payments:** Stripe
 - **Hosting:** Netlify (static + edge functions)
 
 See [docs/cloud-arch.md](docs/cloud-arch.md) for complete architecture details.
@@ -46,7 +46,7 @@ See [docs/cloud-arch.md](docs/cloud-arch.md) for complete architecture details.
 
 ### Business Documentation
 
-- [HAMMER & ANVIL](docs/HAMMER_ANVIL.md) - Resilient Web Design consulting
+- [HAMMER & ANVIL](docs/hammer-anvil.md) - Resilient Web Design consulting
   service offering and business plan
 
 ## Design Principles
