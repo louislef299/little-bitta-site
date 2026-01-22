@@ -119,11 +119,13 @@
   });
 
   async function handlePayment() {
+    buttonDisabled = true;
     if (!actions) {
       buttonStatus = "Stripe actions is invalid";
-      buttonDisabled = true;
       return;
     }
+    buttonStatus = 'Processing...';
+
     
     const session = actions.getSession();
     console.debug('Session email:', session.email);
@@ -135,7 +137,11 @@
     const result = await actions.confirm();
     if (result.type === 'error') {
       errorMessage = result.error.message;
+      buttonStatus = "Pay Now";
+    } else {
+      buttonStatus = 'Success!';
     }
+    buttonDisabled = false;
   }
 </script>
 
@@ -183,6 +189,12 @@
   #submit {
     padding: 1em;
     margin-top: 1rem;
+  }
+
+  #submit:disabled {
+    color: #6b7280;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   #calculated-total {

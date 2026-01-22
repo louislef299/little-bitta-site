@@ -7,6 +7,12 @@
 
   onMount(() => {
     emptyCart();
+    // Clean up the URL (remove session_id query param)
+    if (page.url.searchParams.has('session_id')) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('session_id');
+      history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+    }
   })
 </script>
 

@@ -7,6 +7,7 @@
 </script>
 
 <svelte:head>
+	<title>Little Bitta</title>
 	<link rel="icon" href={logo} />
 </svelte:head>
 
