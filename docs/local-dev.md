@@ -176,6 +176,44 @@ export default config;
 }
 ```
 
+### 5. TLS Certificate Setup (for HTTPS)
+
+The production-like local environment uses Caddy with HTTPS. To avoid browser security warnings, generate locally-trusted certificates using `mkcert`.
+
+**Install mkcert:**
+
+```bash
+# macOS
+brew install mkcert
+
+# Linux (requires certutil)
+sudo apt install libnss3-tools
+brew install mkcert  # or download from https://github.com/FiloSottile/mkcert/releases
+```
+
+**One-time setup (install local CA):**
+
+```bash
+# This installs the local CA in your system trust store
+# You only need to run this once per machine
+mkcert -install
+```
+
+**Generate certificates:**
+
+```bash
+# Generate certs for localhost
+just cert
+
+# This creates:
+# - certs/localhost.pem (certificate)
+# - certs/localhost-key.pem (private key)
+```
+
+After this setup, `https://localhost` will work without browser warnings in both:
+- Local development (`just prod`)
+- Docker environment (`just up`)
+
 ## Environment Variables
 
 ### Create .env File
@@ -636,14 +674,19 @@ Once local development is working:
 
 ## Quick Reference
 
-| Command                  | Purpose                     |
-| ------------------------ | --------------------------- |
-| `bun run dev`            | Start local dev server      |
-| `bun run db:seed`        | Initialize local database   |
-| `bun run db:reset`       | Reset database to seed data |
-| `sqlite3 local/local.db` | Open database shell         |
-| `netlify deploy`         | Deploy to preview           |
-| `netlify deploy --prod`  | Deploy to production        |
+| Command                  | Purpose                          |
+| ------------------------ | -------------------------------- |
+| `mkcert -install`        | Install local CA (one-time)      |
+| `just cert`              | Generate TLS certificates        |
+| `just prod`              | Run production build locally     |
+| `just up`                | Run in Docker                    |
+| `just clean`             | Stop servers and clean up        |
+| `bun run dev`            | Start local dev server           |
+| `bun run db:seed`        | Initialize local database        |
+| `bun run db:reset`       | Reset database to seed data      |
+| `sqlite3 local/local.db` | Open database shell              |
+| `netlify deploy`         | Deploy to preview                |
+| `netlify deploy --prod`  | Deploy to production             |
 
 ---
 

@@ -46,3 +46,4 @@ config/secrets/*
 caddy.pid
 caddy_data
 caddy.log
+certs/

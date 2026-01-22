@@ -20,8 +20,11 @@ services:
     volumes:
     - ./Caddyfile:/etc/caddy/Caddyfile
     - ./caddy_data:/data
+    - ./certs:/etc/caddy/certs:ro
     environment:
     - DOMAIN=${DOMAIN:-localhost}
+    - CERT_FILE=/etc/caddy/certs/localhost.pem
+    - CERT_KEY=/etc/caddy/certs/localhost-key.pem
     networks:
     - net
     depends_on:

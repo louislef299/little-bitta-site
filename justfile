@@ -18,6 +18,13 @@ build:
     {{bun}} check && {{bun}} prepare
     {{bun}} b
 
+# Generate local TLS certificates using mkcert
+cert:
+    @mkdir -p certs
+    mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
+    @echo "Certificates generated in certs/"
+    @echo "Run 'mkcert -install' if you haven't already to trust the local CA"
+
 # Run the production version of the application
 prod: build
     docker compose up -d --wait db

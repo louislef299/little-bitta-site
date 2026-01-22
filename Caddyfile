@@ -1,3 +1,4 @@
 {$DOMAIN:localhost}:443 {
+	tls {$CERT_FILE:certs/localhost.pem} {$CERT_KEY:certs/localhost-key.pem}
 	reverse_proxy {$TGT:bun}:{$TGT_PORT:3000}
 }
