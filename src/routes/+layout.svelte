@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Footer from '$lib/components/Footer.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import logo from '$lib/assets/purple-elephant.png';
 
@@ -12,6 +13,8 @@
 <Header />
 
 {@render children()}
+
+<Footer />
 
 <style>
 	:global(:root) {
