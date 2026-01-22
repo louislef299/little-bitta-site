@@ -6,6 +6,8 @@ out
 dist
 *.tgz
 build
+bun.log
+bun.pid
 
 # code coverage
 coverage
@@ -43,3 +45,4 @@ config/secrets/*
 # Caddy
 caddy.pid
 caddy_data
+caddy.log

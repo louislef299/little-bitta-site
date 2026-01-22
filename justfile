@@ -7,19 +7,25 @@ default:
     @echo "\nAvailable bun scripts:"
     @jq '.scripts' package.json
 
+alias dev := run
+alias serve := run
 # Run the vite dev server using bun runtime
 run:
     {{bun}} -b run dev
 
 # Build the Svelte project using vite
 build:
+    {{bun}} check && {{bun}} prepare
     {{bun}} b
 
 # Run the production version of the application
 prod: build
     docker compose up -d --wait db
-    TGT=localhost TGT_PORT=3000 caddy start --pidfile caddy.pid
-    {{bun}} serve
+    TGT=localhost TGT_PORT=3000 caddy start --pidfile caddy.pid > caddy.log 2>&1
+    {{bun}} serve > bun.log 2>&1 & echo $! > bun.pid
+    @echo "\n * bun server started (logs: bun.log)"
+    @echo " * caddy server started (logs: caddy.log)"
+    @echo " * application is available at https://localhost\n"
 
 # Builds the production compose environment
 up:
@@ -32,3 +38,6 @@ clean:
     {{bun}} clean
     docker compose down -v
     -caddy stop
+    @echo "stopping bun process..."
+    -test -f bun.pid && kill $(cat bun.pid) 2>/dev/null || true
+    -rm -f bun.log caddy.log bun.pid
