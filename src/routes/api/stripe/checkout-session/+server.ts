@@ -2,10 +2,34 @@ import { dev } from "$app/environment";
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getStripe } from "$lib/server/stripe";
+import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   try {
     const { items } = await request.json();
+
+    // Calculate total quantity requested
+    const totalQuantity = items.reduce(
+      (sum: number, item: any) => sum + (item.quantity || 1),
+      0
+    );
+
+    // Check drop availability before creating checkout session
+    const currDrop = await getCurrentDrop();
+    if (!currDrop) {
+      console.error("[StripeHandler] No active drop found");
+      throw error(400, "No active drop available");
+    }
+
+    const capacity = await getDropCapacity(currDrop.id);
+    if (!capacity) {
+      console.error("[StripeHandler] Could not get drop capacity");
+      throw error(500, "Could not verify drop availability");
+    }
+
+    if (capacity.available < totalQuantity) {
+      throw error(400, `Only ${capacity.available} items available`);
+    }
 
     // Build line_items from cart items
     const line_items = items.map((item: any) => ({
@@ -25,7 +49,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
     // Create Stripe Checkout Session
     // https://docs.stripe.com/api/checkout/sessions/create
-    console.log(`using return origin ${origin}`);
+    console.log(`Using return origin ${origin}`);
     const session = await stripe.checkout.sessions.create({
       ui_mode: "custom",
       line_items,
@@ -33,10 +57,16 @@ export const POST: RequestHandler = async ({ request, url }) => {
       return_url: `${origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
-    return json({ clientSecret: session.client_secret });
+    // Note: sold_count is updated AFTER payment confirmation (in order-success or webhook)
+    // not here, since the user hasn't paid yet
+
+    return json({
+      clientSecret: session.client_secret,
+      dropCapacity: capacity,
+    });
   } catch (err) {
-    console.error("Payment intent creation failed:", err);
+    console.error("Checkout session creation failed:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    throw error(500, `Failed to create payment intent: ${message}`);
+    throw error(500, `Failed to create checkout session: ${message}`);
   }
 };
