@@ -22,7 +22,6 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   let event;
-
   try {
     const body = await request.text();
     event = stripe.webhooks.constructEvent(
@@ -108,6 +107,7 @@ async function handleSuccessfulPayment(
     }
   } catch (err) {
     console.error("[StripeWebhook] Failed to handle successful payment:", err);
-    // Don't throw - we've already received the event, and throwing would cause Stripe to retry
+    // Don't throw - we've already received the event, and throwing would cause
+    // Stripe to retry
   }
 }

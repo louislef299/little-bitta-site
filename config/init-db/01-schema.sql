@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS drops (
   year INT NOT NULL,
   status ENUM('upcoming', 'active', 'sold_out', 'ended') NOT NULL DEFAULT 'upcoming',
   max_capacity INT NOT NULL DEFAULT 50,
+  sold_count INT NOT NULL DEFAULT 0,
   start_date DATETIME,
   end_date DATETIME,
   description TEXT,

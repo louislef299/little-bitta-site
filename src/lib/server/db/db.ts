@@ -45,6 +45,7 @@ export async function initDevDb() {
       year INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'active', 'sold_out', 'ended')),
       max_capacity INTEGER NOT NULL DEFAULT 50,
+      sold_count INT NOT NULL DEFAULT 0,
       start_date TEXT,
       end_date TEXT,
       description TEXT,

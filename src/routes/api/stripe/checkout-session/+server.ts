@@ -57,8 +57,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
       return_url: `${origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
-    // Note: sold_count is updated AFTER payment confirmation (in order-success or webhook)
-    // not here, since the user hasn't paid yet
+    // Note: sold_count is updated AFTER payment confirmation (in order-success
+    // or webhook) not here, since the user hasn't paid yet
 
     return json({
       clientSecret: session.client_secret,
