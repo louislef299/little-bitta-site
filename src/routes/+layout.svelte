@@ -22,6 +22,7 @@
 		--bg-color: rgb(250, 249, 246);
 		--text-color: #333;
 		--bg-progress: rgba(0, 0, 0, 0.08);
+		--accent-color: rgb(170, 3, 248);
 	}
 
 	:global([data-theme="dark"]) {
@@ -36,12 +37,12 @@
 	}
 
 	:global(a:hover) {
-		color: rgb(170, 3, 248);
+		color: var(--accent-color);
 	}
 
 	:global(button) {
 		padding: 0.5rem 1rem;
-		border: 1px dotted rgb(170, 3, 248);
+		border: 1px dotted var(--accent-color);
 		border-radius: 4px;
 		background: transparent;
 		color: var(--text-color);
@@ -51,7 +52,7 @@
 	}
 
 	:global(button:hover) {
-		background: rgb(170, 3, 248);
+		background: var(--accent-color);
 		color: white;
 	}
 

@@ -32,6 +32,10 @@
 </article>
 
 <style>
+	h1 {
+		text-align: center;
+	}
+
 	.granola-detail {
 		max-width: 600px;
 		margin: 0 auto;
@@ -47,11 +51,13 @@
 	.price {
 		font-size: 1.5rem;
 		font-weight: bold;
-		color: var(--accent-color, #2563eb);
+		color: var(--accent-color, --text-color);
+		text-align: center;
 	}
 
 	.description {
 		margin: 1.5rem 0;
+		text-align: center;
 	}
 
 	.ingredients {
