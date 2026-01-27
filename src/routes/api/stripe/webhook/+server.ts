@@ -1,3 +1,5 @@
+// https://docs.stripe.com/webhooks
+
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getStripe } from "$lib/server/stripe";

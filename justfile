@@ -25,6 +25,12 @@ cert:
     @echo "Certificates generated in certs/"
     @echo "Run 'mkcert -install' if you haven't already to trust the local CA"
 
+# Uses stripe cli to emulate webhook locally and assumes stripe login
+webhook:
+    @echo "This step assumes you have already run 'stripe login'. You will have \
+    to copy the webhook signing secret to your .env file."
+    stripe listen --forward-to localhost:5173/api/stripe/webhook
+
 # Run the production version of the application
 prod: build
     docker compose up -d --wait db

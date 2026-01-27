@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "cli": "bun src/cli/index.ts",
-    "dev": "bun --bun --env-file .env vite dev",
+    "d": "bun --bun --env-file .env vite dev",
+    "d:stripe": "stripe listen --forward-to localhost:5173/api/stripe/webhook",
+    "dev": "concurrently 'bun run d' 'bun run d:stripe'",
     "b": "bun --bun vite build",
     "serve": "bun ./build/index.js",
     "prepare": "svelte-kit sync || echo ''",
@@ -24,6 +26,7 @@
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/bun": "^1.3.6",
     "@types/node": "^24.10.9",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.14.0",
