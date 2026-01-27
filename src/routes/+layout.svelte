@@ -11,11 +11,13 @@
 	<link rel="icon" href={logo} />
 </svelte:head>
 
-<Header />
-
-{@render children()}
-
-<Footer />
+<div class="layout">
+    <Header />
+    <main>
+        {@render children()}
+    </main>
+    <Footer />
+</div>
 
 <style>
 	:global(:root) {
@@ -62,14 +64,25 @@
 
 	:global(body) {
 		font-family:Verdana,sans-serif;
-		margin:auto;
 		padding:1rem;
-		max-width:720px;
 		text-align:left;
 		background-color: var(--bg-color);
     	color: var(--text-color);
 		word-wrap:break-word;
 		overflow-wrap:break-word;
 		line-height:1.5;
+	}
+
+	.layout {
+		display: flex;
+		flex-direction: column;
+		min-height: 90vh;
+		max-width: 720px;
+		margin: auto;
+		padding: 1rem;
+	}
+
+	main {
+		flex: 1;  /* This pushes the footer down */
 	}
 </style>
