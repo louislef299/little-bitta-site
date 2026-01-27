@@ -63,6 +63,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
       ui_mode: "custom",
       line_items,
       mode: "payment",
+      automatic_tax: {
+        enabled: true,
+      },
       return_url: `${origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
