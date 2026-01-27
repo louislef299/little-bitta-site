@@ -7,11 +7,11 @@ export const sql = dev ? new SQL(":memory:") : new SQL(DATABASE_URL);
 // Initialize dev database with schema and seed data
 export async function initDevDb() {
   if (!dev) {
-    console.info("server is in production mode, skipping db init")
+    console.info("server is in production mode, skipping db init");
     return;
   }
 
-  console.warn("server is in dev mode, initializing db")
+  console.warn("server is in dev mode, initializing db");
   // Create table (SQLite syntax)
   await sql`
     CREATE TABLE IF NOT EXISTS products (
@@ -92,6 +92,34 @@ export async function initDevDb() {
       FOREIGN KEY (drop_id) REFERENCES drops(id)
     )
   `;
+
+  // Create drop_products table for per-product capacity tracking
+  await sql`
+    CREATE TABLE IF NOT EXISTS drop_products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      drop_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      max_capacity INTEGER NOT NULL DEFAULT 10,
+      sold_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (drop_id) REFERENCES drops(id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      UNIQUE(drop_id, product_id)
+    )
+  `;
+
+  // Seed drop_products with varied capacities for January drop
+  const existingDropProducts =
+    await sql`SELECT COUNT(*) as count FROM drop_products`;
+  if (existingDropProducts[0].count === 0) {
+    await sql`INSERT INTO drop_products (drop_id, product_id, max_capacity, sold_count) VALUES
+      (1, 1, 25, 22),  -- PB Chocolate Chip: 3 left
+      (1, 2, 25, 0),   -- PB Nutella: 25 left  
+      (1, 3, 15, 15),  -- Honey Bear: SOLD OUT
+      (1, 4, 10, 2)    -- Pistachio: 8 left
+    `;
+  }
 
   // Seed sample orders for dev testing
   const existingOrders = await sql`SELECT COUNT(*) as count FROM orders`;

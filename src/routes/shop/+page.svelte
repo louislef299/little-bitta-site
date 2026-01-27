@@ -1,14 +1,23 @@
 <script lang="ts">
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
-    import CapacityBar from '$lib/components/CapacityBar.svelte';
     import type { PageProps } from './$types';
     import AddToCart from '$lib/components/AddToCart.svelte';
+    import type { ProductCapacity } from '$lib/server/db/drop-product';
 
 	let { data }: PageProps = $props();
 
-    const { drop, capacity } = $derived(data);
-    let isCurrentDropAvailable = $derived(capacity ? capacity.available > 0 : false);
+    const { drop, products, productCapacities } = $derived(data);
+
+    // Helper to get capacity for a product, with default fallback
+    function getCapacity(productId: number): ProductCapacity {
+        return productCapacities[productId] ?? {
+            product_id: productId,
+            max: 10,
+            sold: 0,
+            available: 10
+        };
+    }
 
     // Opportunistically load payment SDKs when browser is idle
     if (browser) {
@@ -40,9 +49,18 @@
 </div>
 
 <ul>
-	{#each data.product as item}
+	{#each products as item}
+        {@const capacity = getCapacity(item.id)}
 		<li>
-            <img class="shop" alt="{item.name} image" src={item.image_url} />
+            <div class="image-container">
+                <img class="shop" alt="{item.name} image" src={item.image_url} />
+                {#if capacity.available === 0}
+                    <div class="sold-out-banner">Sold Out</div>
+                {/if}
+                {#if capacity.available > 0 && capacity.available <= 3}
+                    <div class="availability-badge">{capacity.available} Left!</div>
+                {/if}
+            </div>
             <div class="item-name">
                 <a href="/product/{item.slug}">
                     <strong>{item.name}</strong>
@@ -51,7 +69,7 @@
 
             <div class="item-footer">
                 <div class="item-info">
-                    <i>${item.price}/lb</i>s
+                    <i>${item.price}/lb</i>
                 </div>
                 <AddToCart id={item.id} name={item.name} price={item.price} {drop} {capacity}/>
             </div>
@@ -60,9 +78,42 @@
 </ul>
 
 <style>
+    .image-container {
+        position: relative;
+        overflow: hidden;
+    }
+
     .shop {
         width: 10rem;
         height: 14rem;
+    }
+
+    .sold-out-banner {
+        position: absolute;
+        top: 18px;
+        right: -35px;
+        width: 130px;
+        background: #dc2626;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+        padding: 5px 0;
+        transform: rotate(45deg);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .availability-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #f59e0b;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
 
     .item-name {
@@ -76,13 +127,6 @@
         align-items: center;
         gap: 0.5rem;
         text-align: center;
-    }
-
-    .capacity-warning {
-        color: #f59e0b;
-        font-weight: 500;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
     }
 
     ul {

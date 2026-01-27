@@ -154,6 +154,7 @@
             }
           } else {
             console.error(`[StripeGwy] Could not load checkout actions: ${result.error}`);
+            errorMessage = result.error.message;
           }
         })
       } catch (error) {
