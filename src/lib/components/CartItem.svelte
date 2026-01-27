@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Trash2 } from '@lucide/svelte';
-	import { removeFromCart } from '$lib/cart/cart.svelte'
+	import { getTotalForItem, removeFromCart, updateQuantity } from '$lib/cart/cart.svelte'
     import type { Drop } from '$lib/server/db/drop';
 
 	type Props = {
@@ -10,10 +10,13 @@
 		price: number;
 		drop: Drop;
 	};
-
 	let { id, name, quantity, price, drop }: Props = $props();
 
 	let itemTotal = $derived((price * quantity).toFixed(2));
+
+	function reduceByOne(id: number) {
+        updateQuantity(id, (getTotalForItem(id)-1));
+    }
 </script>
 
 <div class="cart-item">
@@ -24,6 +27,11 @@
 	</div>
 	<div class="item-price">
 		${itemTotal}
+	</div>
+	<div class="remove-one">
+		<button type="button" onclick={() => reduceByOne(id)}>
+			-1
+		</button>
 	</div>
 	<div class="cart-remove">
 		<button type="button" onclick={() => removeFromCart(id)}>
@@ -67,6 +75,16 @@
 	.item-price {
 		font-weight: 500;
 		margin-right: 0.5rem;
+	}
+
+	.remove-one button {
+		border: none;
+		color: #dc2626;
+	}
+
+	.remove-one button:hover {
+		border: 1px dotted #dc2626;
+		background: transparent;
 	}
 
 	.cart-remove button {

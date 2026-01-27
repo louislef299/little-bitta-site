@@ -1,6 +1,6 @@
 <script lang="ts">
     import {
-        addToCart, getTotalForItem, updateQuantity
+        addToCart, getTotalForItem
     } from '$lib/cart/cart.svelte';
     import type { Drop, DropCapacity } from '$lib/server/db/drop';
 
@@ -14,10 +14,6 @@
 	let { id, name, price, drop, capacity }: Props = $props();
 
     let isCurrentDropAvailable = $derived(capacity ? capacity.available > 0 : false);
-
-    function reduceByOne(id: number) {
-        updateQuantity(id, (getTotalForItem(id)-1));
-    }
 </script>
 
 <div class="button-group">
@@ -32,10 +28,7 @@
                 drop: drop,
             })
         }}>
-        +Cart {#if getTotalForItem(id) > 0}{getTotalForItem(id)}{/if}
-    </button>
-    <button type="button" onclick={() => reduceByOne(id)}>
-        -Cart
+        Add To Cart {#if getTotalForItem(id) > 0}({getTotalForItem(id)}){/if}
     </button>
 </div>
 
