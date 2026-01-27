@@ -4,6 +4,7 @@
     import type { PageProps } from './$types';
     import AddToCart from '$lib/components/AddToCart.svelte';
     import type { ProductCapacity } from '$lib/server/db/drop-product';
+    import ShopImage from '$lib/components/ShopImage.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -34,33 +35,19 @@
 </script>
 
 <h1>
-    Granola {#if isCurrentDropAvailable} Available {:else} Unavailable {/if}
+    Granola Shop
 </h1>
 
 <div>
     <h2>{drop.display_name} {drop.year} Drop</h2>
-
-    {#if !isCurrentDropAvailable}
-        <p class="capacity-warning">
-            This drop is at capacity.
-        </p>
-    {/if}
     <a href="/#Limited-Drop-Availability">how it works</a>
 </div>
 
 <ul>
 	{#each products as item}
-        {@const capacity = getCapacity(item.id)}
+        {@const capacity=getCapacity(item.id)}
 		<li>
-            <div class="image-container">
-                <img class="shop" alt="{item.name} image" src={item.image_url} />
-                {#if capacity.available === 0}
-                    <div class="sold-out-banner">Sold Out</div>
-                {/if}
-                {#if capacity.available > 0 && capacity.available <= 3}
-                    <div class="availability-badge">{capacity.available} Left!</div>
-                {/if}
-            </div>
+            <ShopImage product={item} productCapacity={capacity} />
             <div class="item-name">
                 <a href="/product/{item.slug}">
                     <strong>{item.name}</strong>
@@ -78,44 +65,6 @@
 </ul>
 
 <style>
-    .image-container {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .shop {
-        width: 10rem;
-        height: 14rem;
-    }
-
-    .sold-out-banner {
-        position: absolute;
-        top: 18px;
-        right: -35px;
-        width: 130px;
-        background: #dc2626;
-        color: white;
-        text-align: center;
-        font-weight: bold;
-        font-size: 0.8rem;
-        padding: 5px 0;
-        transform: rotate(45deg);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .availability-badge {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: #f59e0b;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-
     .item-name {
         text-align: center;
     }
