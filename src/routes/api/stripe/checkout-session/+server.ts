@@ -3,6 +3,7 @@ import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getStripe } from "$lib/server/stripe";
 import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
+import { getProductCapacity } from "$lib/server/db/drop-product";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   try {
@@ -11,7 +12,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // Calculate total quantity requested
     const totalQuantity = items.reduce(
       (sum: number, item: any) => sum + (item.quantity || 1),
-      0
+      0,
     );
 
     // Check drop availability before creating checkout session
@@ -21,14 +22,25 @@ export const POST: RequestHandler = async ({ request, url }) => {
       throw error(400, "No active drop available");
     }
 
-    const capacity = await getDropCapacity(currDrop.id);
-    if (!capacity) {
+    const dropCapacity = await getDropCapacity(currDrop.id);
+    if (!dropCapacity) {
       console.error("[StripeHandler] Could not get drop capacity");
       throw error(500, "Could not verify drop availability");
     }
 
-    if (capacity.available < totalQuantity) {
-      throw error(400, `Only ${capacity.available} items available`);
+    if (dropCapacity.available < totalQuantity) {
+      throw error(400, `Only ${dropCapacity.available} items available`);
+    }
+
+    // Check per-product availability
+    for (const item of items) {
+      const productCapacity = await getProductCapacity(currDrop.id, item.id);
+      if (productCapacity.available < item.quantity) {
+        throw error(
+          400,
+          `Only ${productCapacity.available} of ${item.name} available`,
+        );
+      }
     }
 
     // Build line_items from cart items
@@ -38,8 +50,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
         product_data: {
           name: item.name,
           metadata: {
-            order_item_id: item.id.toString()
-          }
+            order_item_id: item.id.toString(),
+          },
         },
         unit_amount: item.price * 100, // Convert to cents
       },
@@ -73,9 +85,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // or webhook) not here, since the user hasn't paid yet.
 
     // Gather line_items for metadata
-    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(session.id, {
-      expand: ['line_items']
-    });
+    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+      session.id,
+      {
+        expand: ["line_items"],
+      },
+    );
 
     // Build mapping by array index (items are in same order)
     const lineItemMapping: Record<number, string> = {};
@@ -88,7 +103,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
     return json({
       clientSecret: session.client_secret,
-      dropCapacity: capacity,
+      dropCapacity,
       lineItemMapping,
     });
   } catch (err) {

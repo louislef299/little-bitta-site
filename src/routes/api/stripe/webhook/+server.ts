@@ -9,6 +9,7 @@ import {
   updateDropCapacity,
   updateDropStatus,
 } from "$lib/server/db/drop";
+import { updateProductCapacity } from "$lib/server/db/drop-product";
 
 export const POST: RequestHandler = async ({ request }) => {
   const stripe = getStripe();
@@ -29,7 +30,7 @@ export const POST: RequestHandler = async ({ request }) => {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      env.STRIPE_WEBHOOK_SECRET
+      env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -73,16 +74,19 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function handleSuccessfulPayment(
-  session: import("stripe").Stripe.Checkout.Session
+  session: import("stripe").Stripe.Checkout.Session,
 ) {
   try {
     const stripe = getStripe();
 
-    // Retrieve line items to get total quantity
-    const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+    // Retrieve line items with expanded price.product to get metadata
+    const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+      expand: ["data.price.product"],
+    });
+
     const totalQuantity = lineItems.data.reduce(
       (sum, item) => sum + (item.quantity || 0),
-      0
+      0,
     );
 
     if (totalQuantity === 0) {
@@ -90,22 +94,57 @@ async function handleSuccessfulPayment(
       return;
     }
 
-    // Update the drop sold_count
+    // Get the current drop
     const currDrop = await getCurrentDrop();
     if (!currDrop) {
       console.error("[StripeWebhook] No active drop found");
       return;
     }
 
+    // Update drop-level sold_count (source of truth)
     const capacity = await updateDropCapacity(currDrop.id, totalQuantity);
     console.log(
-      `[StripeWebhook] Updated drop ${currDrop.id} sold_count by ${totalQuantity}`
+      `[StripeWebhook] Updated drop ${currDrop.id} sold_count by ${totalQuantity}`,
     );
 
     // Check if drop is now sold out
     if (capacity && capacity.available <= 0) {
       await updateDropStatus(currDrop.id, "sold_out");
       console.log(`[StripeWebhook] Drop ${currDrop.id} marked as sold_out`);
+    }
+
+    // Update per-product sold counts
+    for (const lineItem of lineItems.data) {
+      const quantity = lineItem.quantity || 0;
+      if (quantity === 0) continue;
+
+      // Get product metadata (order_item_id is our product ID)
+      const product = lineItem.price?.product;
+      if (
+        typeof product === "object" &&
+        product !== null &&
+        "metadata" in product
+      ) {
+        const productId = product.metadata?.order_item_id;
+        if (productId) {
+          await updateProductCapacity(
+            currDrop.id,
+            parseInt(productId),
+            quantity,
+          );
+          console.log(
+            `[StripeWebhook] Updated product ${productId} sold_count by ${quantity}`,
+          );
+        } else {
+          console.warn(
+            `[StripeWebhook] No order_item_id in product metadata for line item`,
+          );
+        }
+      } else {
+        console.warn(
+          `[StripeWebhook] Could not get product metadata for line item`,
+        );
+      }
     }
   } catch (err) {
     console.error("[StripeWebhook] Failed to handle successful payment:", err);

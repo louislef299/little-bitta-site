@@ -1,7 +1,8 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { getProductBySlug } from "$lib/server/db/product";
-import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
+import { getCurrentDrop } from "$lib/server/db/drop";
+import { getProductCapacity } from "$lib/server/db/drop-product";
 
 export const load: PageServerLoad = async ({ params }) => {
   const product = await getProductBySlug(params.slug);
@@ -19,7 +20,8 @@ export const load: PageServerLoad = async ({ params }) => {
     });
   }
 
-  const capacity = await getDropCapacity(drop.id);
+  // Get product-level capacity for this product in the current drop
+  const capacity = await getProductCapacity(drop.id, product.id);
 
   return { product, drop, capacity };
 };

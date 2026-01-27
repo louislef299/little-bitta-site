@@ -2,24 +2,25 @@
     import {
         addToCart, getTotalForItem
     } from '$lib/cart/cart.svelte';
-    import type { Drop, DropCapacity } from '$lib/server/db/drop';
+    import type { Drop } from '$lib/server/db/drop';
+    import type { ProductCapacity } from '$lib/server/db/drop-product';
 
     type Props = {
 		id: number;
 		name: string;
 		price: number;
 		drop: Drop;
-		capacity: DropCapacity | null;
+		capacity: ProductCapacity | null;
 	};
 	let { id, name, price, drop, capacity }: Props = $props();
 
-    let isCurrentDropAvailable = $derived(capacity ? capacity.available > 0 : false);
+    let isAvailable = $derived(capacity ? capacity.available > 0 : false);
 </script>
 
 <div class="button-group">
     <button
         type="button"
-        disabled={!isCurrentDropAvailable}
+        disabled={!isAvailable}
         onclick={() => {
             addToCart({
                 id: id,
