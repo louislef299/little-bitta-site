@@ -2,7 +2,12 @@
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    const { products, drops, dropProducts, orders, orderItems } = $derived(data);
+    const { products, drops, dropCapacities, dropProducts, orders, orderItems } = $derived(data);
+
+    // Helper to get capacity for a drop
+    function getCapacity(dropId: number) {
+        return dropCapacities[dropId] ?? { max: 0, sold: 0, available: 0 };
+    }
 
     // Group order items by order_id for display
     function getOrderItems(orderId: number) {
@@ -34,14 +39,15 @@
             </thead>
             <tbody>
                 {#each drops as drop}
+                    {@const cap = getCapacity(drop.id)}
                     <tr class:active={drop.status === 'active'} class:sold-out={drop.status === 'sold_out'}>
                         <td>{drop.id}</td>
                         <td>{drop.display_name}</td>
                         <td>{drop.year}</td>
                         <td><span class="status {drop.status}">{drop.status}</span></td>
-                        <td>{drop.max_capacity}</td>
-                        <td>{drop.sold_count}</td>
-                        <td>{drop.max_capacity - drop.sold_count}</td>
+                        <td>{cap.max}</td>
+                        <td>{cap.sold}</td>
+                        <td>{cap.available}</td>
                     </tr>
                 {/each}
             </tbody>

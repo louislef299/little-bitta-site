@@ -6,7 +6,7 @@ import { getStripe } from "$lib/server/stripe";
 import { env } from "$env/dynamic/private";
 import {
   getCurrentDrop,
-  updateDropCapacity,
+  getDropCapacity,
   updateDropStatus,
 } from "$lib/server/db/drop";
 import { updateProductCapacity } from "$lib/server/db/drop-product";
@@ -101,19 +101,7 @@ async function handleSuccessfulPayment(
       return;
     }
 
-    // Update drop-level sold_count (source of truth)
-    const capacity = await updateDropCapacity(currDrop.id, totalQuantity);
-    console.log(
-      `[StripeWebhook] Updated drop ${currDrop.id} sold_count by ${totalQuantity}`,
-    );
-
-    // Check if drop is now sold out
-    if (capacity && capacity.available <= 0) {
-      await updateDropStatus(currDrop.id, "sold_out");
-      console.log(`[StripeWebhook] Drop ${currDrop.id} marked as sold_out`);
-    }
-
-    // Update per-product sold counts
+    // Update per-product sold counts (this is the source of truth)
     for (const lineItem of lineItems.data) {
       const quantity = lineItem.quantity || 0;
       if (quantity === 0) continue;
@@ -145,6 +133,17 @@ async function handleSuccessfulPayment(
           `[StripeWebhook] Could not get product metadata for line item`,
         );
       }
+    }
+
+    // Check if drop is now sold out (calculated from drop_products)
+    const capacity = await getDropCapacity(currDrop.id);
+    console.log(
+      `[StripeWebhook] Drop ${currDrop.id} capacity: ${capacity?.current}/${capacity?.max} (${capacity?.available} available)`,
+    );
+
+    if (capacity && capacity.available <= 0) {
+      await updateDropStatus(currDrop.id, "sold_out");
+      console.log(`[StripeWebhook] Drop ${currDrop.id} marked as sold_out`);
     }
   } catch (err) {
     console.error("[StripeWebhook] Failed to handle successful payment:", err);
