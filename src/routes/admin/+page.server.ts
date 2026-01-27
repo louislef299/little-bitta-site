@@ -2,7 +2,7 @@ import { dev } from "$app/environment";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { getAllProducts } from "$lib/server/db/product";
-import { getAllDrops } from "$lib/server/db/drop";
+import { getAllDrops, getDropCapacity } from "$lib/server/db/drop";
 import { sql } from "$lib/server/db/db";
 
 export const load: PageServerLoad = async () => {
@@ -13,6 +13,22 @@ export const load: PageServerLoad = async () => {
 
   const products = await getAllProducts();
   const drops = await getAllDrops();
+
+  // Get calculated capacity for each drop
+  const dropCapacities: Record<
+    number,
+    { max: number; sold: number; available: number }
+  > = {};
+  for (const drop of drops) {
+    const capacity = await getDropCapacity(drop.id);
+    if (capacity) {
+      dropCapacities[drop.id] = {
+        max: capacity.max,
+        sold: capacity.current,
+        available: capacity.available,
+      };
+    }
+  }
 
   // Get all drop_products
   const dropProducts = await sql`
@@ -43,6 +59,7 @@ export const load: PageServerLoad = async () => {
   return {
     products,
     drops,
+    dropCapacities,
     dropProducts,
     orders,
     orderItems,

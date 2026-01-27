@@ -44,8 +44,6 @@ export async function initDevDb() {
       display_name TEXT NOT NULL,
       year INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'active', 'sold_out', 'ended')),
-      max_capacity INTEGER NOT NULL DEFAULT 50,
-      sold_count INT NOT NULL DEFAULT 0,
       start_date TEXT,
       end_date TEXT,
       description TEXT,
@@ -57,9 +55,9 @@ export async function initDevDb() {
   // Seed drops data
   const existingDrops = await sql`SELECT COUNT(*) as count FROM drops`;
   if (existingDrops[0].count === 0) {
-    await sql`INSERT INTO drops (display_name, year, status, max_capacity, description) VALUES
-      ('January', 2026, 'active', 50, 'Start the new year with delicious granola!'),
-      ('February', 2026, 'upcoming', 50, 'Valentine special coming soon!')
+    await sql`INSERT INTO drops (display_name, year, status, description) VALUES
+      ('January', 2026, 'active', 'Start the new year with delicious granola!'),
+      ('February', 2026, 'upcoming', 'Valentine special coming soon!')
     `;
   }
 

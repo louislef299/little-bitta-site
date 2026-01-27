@@ -14,13 +14,11 @@ This document describes the database schema for the Little Bitta Granola e-comme
 │ slug (UNIQUE)   │       │ display_name    │       │ stripe_session  │
 │ name            │       │ year            │       │ stripe_payment  │
 │ description     │       │ status          │       │ customer_email  │
-│ ingredients     │       │ max_capacity    │       │ total_amount    │
-│ price           │       │ sold_count      │       │ status          │
-│ image_url       │       │ start_date      │       │ created_at      │
-│ product_type    │       │ end_date        │       │ updated_at      │
-└────────┬────────┘       │ description     │       └────────┬────────┘
-         │                │ created_at      │                │
-         │                │ updated_at      │                │
+│ ingredients     │       │ start_date      │       │ total_amount    │
+│ price           │       │ end_date        │       │ status          │
+│ image_url       │       │ description     │       │ created_at      │
+│ product_type    │       │ created_at      │       │ updated_at      │
+└────────┬────────┘       │ updated_at      │       └────────┬────────┘
          │                └────────┬────────┘                │
          │                         │                         │
          │    ┌────────────────────┼────────────────────┐    │
@@ -67,13 +65,13 @@ Limited-time inventory releases. Only one drop can be `active` at a time.
 | `display_name` | TEXT    | NOT NULL                            | Human-readable name (e.g., "January")             |
 | `year`         | INTEGER | NOT NULL                            | Year of the drop                                  |
 | `status`       | TEXT    | NOT NULL, DEFAULT 'upcoming', CHECK | One of: `upcoming`, `active`, `sold_out`, `ended` |
-| `max_capacity` | INTEGER | NOT NULL, DEFAULT 50                | Total items available (source of truth)           |
-| `sold_count`   | INTEGER | NOT NULL, DEFAULT 0                 | Total items sold                                  |
 | `start_date`   | TEXT    |                                     | ISO date when drop becomes active                 |
 | `end_date`     | TEXT    |                                     | ISO date when drop ends                           |
 | `description`  | TEXT    |                                     | Marketing description                             |
 | `created_at`   | TEXT    | DEFAULT CURRENT_TIMESTAMP           | Record creation time                              |
 | `updated_at`   | TEXT    | DEFAULT CURRENT_TIMESTAMP           | Last update time                                  |
+
+**Note:** Drop capacity is **calculated** from the sum of `drop_products` entries, not stored directly on the drops table.
 
 **Status Transitions:**
 
@@ -84,7 +82,7 @@ upcoming → active → sold_out
 
 ### drop_products
 
-Junction table for per-product capacity within a drop. Allows different quantities per flavor.
+Junction table for per-product capacity within a drop. **This is the source of truth for inventory tracking.**
 
 | Column         | Type    | Constraints                | Description                                |
 | -------------- | ------- | -------------------------- | ------------------------------------------ |
@@ -99,12 +97,6 @@ Junction table for per-product capacity within a drop. Allows different quantiti
 **Constraints:**
 
 - `UNIQUE(drop_id, product_id)` - Each product can only appear once per drop
-
-**Relationship to drops.sold_count:**
-
-- `drops.sold_count` is the **source of truth** for total capacity
-- `drop_products.sold_count` provides **per-product breakdown**
-- Both are updated on successful payment (webhook)
 
 ### orders
 
@@ -163,17 +155,31 @@ Line items within an order. Each row represents one product in the order.
 
 ## Capacity Tracking
 
-### Two-Level Capacity System
+### Single Source of Truth: `drop_products`
 
-1. **Drop-level** (`drops.max_capacity`, `drops.sold_count`)
-   - Source of truth for overall drop availability
-   - Used on home page capacity bar
-   - Backup validation in case of per-product discrepancies
+All capacity tracking flows through the `drop_products` table:
 
-2. **Product-level** (`drop_products.max_capacity`, `drop_products.sold_count`)
-   - Per-flavor availability within a drop
-   - Used on shop page ("3 Left!" badges, "Sold Out" banners)
-   - Allows different quantities per product
+- **Per-product capacity**: `drop_products.max_capacity` and `drop_products.sold_count`
+- **Drop-level capacity**: Calculated as `SUM(max_capacity)` and `SUM(sold_count)` from `drop_products`
+
+This design ensures:
+
+1. Per-product availability is always accurate
+2. Drop-level totals are always consistent with per-product data
+3. No synchronization issues between separate counters
+
+### Capacity Calculation
+
+```sql
+-- Drop-level capacity (calculated)
+SELECT
+  COALESCE(SUM(max_capacity), 0) as total_max,
+  COALESCE(SUM(sold_count), 0) as total_sold
+FROM drop_products
+WHERE drop_id = ?;
+
+-- Available = total_max - total_sold
+```
 
 ### Capacity Update Flow
 
@@ -181,16 +187,19 @@ Line items within an order. Each row represents one product in the order.
 Payment Confirmed (Webhook)
          │
          ▼
-┌─────────────────────────┐
-│ Update drops.sold_count │  ← Source of truth
-│ (total quantity)        │
-└───────────┬─────────────┘
-            │
-            ▼
 ┌─────────────────────────────────┐
 │ For each line item:             │
-│   Update drop_products.sold_count│  ← Per-product tracking
+│   Update drop_products.sold_count│  ← Source of truth
 │   (item quantity)               │
+└───────────────────┬─────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────┐
+│ Calculate drop capacity         │
+│ (SUM from drop_products)        │
+│                                 │
+│ If available <= 0:              │
+│   Update drops.status = sold_out│
 └─────────────────────────────────┘
 ```
 
@@ -206,6 +215,21 @@ LEFT JOIN drop_products dp ON p.id = dp.product_id
 LEFT JOIN drops d ON dp.drop_id = d.id
 WHERE d.status = 'active'
 ORDER BY p.name;
+```
+
+### Get drop capacity (calculated)
+
+```sql
+SELECT
+  d.id,
+  d.display_name,
+  COALESCE(SUM(dp.max_capacity), 0) as total_max,
+  COALESCE(SUM(dp.sold_count), 0) as total_sold,
+  COALESCE(SUM(dp.max_capacity), 0) - COALESCE(SUM(dp.sold_count), 0) as available
+FROM drops d
+LEFT JOIN drop_products dp ON d.id = dp.drop_id
+WHERE d.status = 'active'
+GROUP BY d.id;
 ```
 
 ### Get order with items
@@ -232,10 +256,10 @@ WHERE d.status = 'active'
 
 ## Database Files
 
-| File                                | Purpose                                      |
-| ----------------------------------- | -------------------------------------------- |
-| `src/lib/server/db/db.ts`           | Connection setup, schema creation, seed data |
-| `src/lib/server/db/product.ts`      | Product queries                              |
-| `src/lib/server/db/drop.ts`         | Drop and drop-level capacity queries         |
-| `src/lib/server/db/drop-product.ts` | Per-product capacity queries                 |
-| `src/lib/server/db/order.ts`        | Order and order item queries                 |
+| File                                | Purpose                                                      |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `src/lib/server/db/db.ts`           | Connection setup, schema creation, seed data                 |
+| `src/lib/server/db/product.ts`      | Product queries                                              |
+| `src/lib/server/db/drop.ts`         | Drop queries, calculated drop-level capacity                 |
+| `src/lib/server/db/drop-product.ts` | Per-product capacity queries (source of truth for inventory) |
+| `src/lib/server/db/order.ts`        | Order and order item queries                                 |
