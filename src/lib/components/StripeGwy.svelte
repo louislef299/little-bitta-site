@@ -1,11 +1,11 @@
 <!--
   Stripe Payment Integration
-  Supports: Cards, Cash App, Apple Pay, Google Pay
-  https://docs.stripe.com/payments/accept-a-payment
 
-  https://docs.stripe.com/payments/elements
-
-  https://docs.stripe.com/elements/express-checkout-element#supported-browsers
+  Resources:
+  - https://docs.stripe.com/payments/accept-a-payment
+  - https://docs.stripe.com/payments/elements
+  - https://docs.stripe.com/elements/express-checkout-element#supported-browsers
+  - https://docs.stripe.com/js/custom_checkout/init
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
@@ -108,14 +108,22 @@
           paymentMethodOrder: [
             'apple_pay', 'google_pay', 'amazon_pay',
             'card', 'cashapp', 'klarna',
-          ]
+          ],
+          wallets: {
+            applePay: 'auto',
+            googlePay: 'auto',
+            link: 'auto'
+          }
         });
         paymentElement.mount('#payment-element');
+
+        // https://docs.stripe.com/js/custom_checkout/create_billing_address_element
+        const billingElement = checkout.createBillingAddressElement();
+        billingElement.mount('#billing-element');
 
         // the clover API method isn't typed in @stripe/stripe-js
         const emailElement = (checkout as any).createEmailElement();
         emailElement.mount('#email-element');
-
         emailElement.on('change', (event: any) => {
           // The element might auto-sync, but capture the value if needed
           if (event.value?.email) {
@@ -189,11 +197,11 @@
   </div>
 
   <form id="payment-form">
-    <div id="email-element"></div>
+    <!--Stripe.js injects the Elements-->
     <div id="payment-method">{paymentStatus}</div>
-    <div id="payment-element">
-      <!--Stripe.js injects the Payment Element-->
-    </div>
+    <div id="payment-element"></div>
+    <div id="email-element"></div>
+    <div id="billing-element"></div>
     <button id="submit" onclick={handlePayment} disabled={buttonDisabled}>
       <div class="spinner hidden" id="spinner"></div>
       <span id="button-text">{buttonStatus}</span>
@@ -223,6 +231,8 @@
   #submit {
     padding: 1em;
     margin-top: 1rem;
+    display: block;
+    margin-left: auto;
   }
 
   #submit:disabled {
