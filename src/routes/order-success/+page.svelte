@@ -67,17 +67,14 @@
   h1 {
     font-size: 2rem;
     margin-bottom: 1rem;
-    color: #333;
   }
 
   h2 {
     font-size: 1.3rem;
     margin-bottom: 1rem;
-    color: #333;
   }
 
   .order-details {
-    background: #f8f9fa;
     border-radius: 8px;
     padding: 1rem;
     margin: 2rem 0;
@@ -86,12 +83,10 @@
 
   .order-details p {
     margin: 0.5rem 0;
-    color: #555;
   }
 
   .info {
     font-size: 0.9rem;
-    color: #6c757d;
     font-style: italic;
     margin-top: 1rem;
   }
