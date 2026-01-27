@@ -56,35 +56,68 @@ export async function loadStripeInstance() {
 ```typescript
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { SECRET_STRIPE_KEY } from "$env/static/private";
-import Stripe from "stripe";
-
-const stripe = new Stripe(SECRET_STRIPE_KEY, {
-  apiVersion: "2025-12-15.clover",
-});
+import { getStripe } from "$lib/server/stripe";
+import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   try {
     const { items } = await request.json();
+    const stripe = getStripe();
 
-    // Build line_items from cart
+    // Check drop capacity before creating session
+    const currDrop = await getCurrentDrop();
+    const capacity = await getDropCapacity(currDrop.id);
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    if (capacity.available < totalQuantity) {
+      throw error(400, `Only ${capacity.available} items available`);
+    }
+
+    // Build line_items with adjustable quantities
     const line_items = items.map((item: any) => ({
       price_data: {
         currency: "usd",
-        product_data: { name: item.name },
-        unit_amount: item.price * 100, // Convert to cents
+        product_data: {
+          name: item.name,
+          metadata: { order_item_id: item.id.toString() },
+        },
+        unit_amount: item.price * 100,
       },
       quantity: item.quantity,
+      adjustable_quantity: {
+        enabled: true,
+        minimum: 0,
+        maximum: 50,
+      },
     }));
 
     const session = await stripe.checkout.sessions.create({
-      ui_mode: "custom", // CRITICAL: enables custom Elements UI
+      ui_mode: "custom",
       line_items,
       mode: "payment",
+      automatic_tax: { enabled: true },
       return_url: `${url.origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
-    return json({ clientSecret: session.client_secret });
+    // Retrieve line items to build ID mapping
+    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+      session.id,
+      { expand: ["line_items"] },
+    );
+
+    const lineItemMapping: Record<number, string> = {};
+    items.forEach((item: any, index: number) => {
+      const stripeLineItem = sessionWithLineItems.line_items?.data[index];
+      if (stripeLineItem) {
+        lineItemMapping[item.id] = stripeLineItem.id;
+      }
+    });
+
+    return json({
+      clientSecret: session.client_secret,
+      dropCapacity: capacity,
+      lineItemMapping,
+    });
   } catch (err) {
     console.error("Checkout session creation failed:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -98,6 +131,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
 - `ui_mode: 'custom'` is required for Elements UI (not hosted redirect)
 - `return_url` must be an absolute URL (not relative path)
 - Use `{CHECKOUT_SESSION_ID}` placeholder for session ID in URL
+- `adjustable_quantity` must be enabled for client-side quantity updates
+- `lineItemMapping` is returned so client can map order items to Stripe line item IDs
+- Drop capacity is checked before session creation to prevent overselling
 
 ## Client-Side: Payment Component
 
@@ -106,15 +142,64 @@ export const POST: RequestHandler = async ({ request, url }) => {
 ### Initialization Flow
 
 ```typescript
+let lineItemMapping: Record<number, string> = {};
+
+async function fetchClientSecret(): Promise<string> {
+  const currentHash = getCartHash();
+  const cacheKey = getCheckoutCacheKey();
+
+  // Check cache first
+  if (browser) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const {
+        clientSecret,
+        cartHash,
+        lineItemMapping: cached_mapping,
+      } = JSON.parse(cached);
+      if (cartHash === currentHash) {
+        lineItemMapping = cached_mapping;
+        return clientSecret;
+      }
+    }
+  }
+
+  // Fetch new session
+  const response = await fetch("/api/stripe/checkout-session", {
+    method: "POST",
+    body: JSON.stringify({ items: getItems() }),
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await response.json();
+  lineItemMapping = data.lineItemMapping;
+
+  // Cache the session
+  if (browser) {
+    localStorage.setItem(
+      cacheKey,
+      JSON.stringify({
+        clientSecret: data.clientSecret,
+        cartHash: currentHash,
+        lineItemMapping: data.lineItemMapping,
+      }),
+    );
+  }
+
+  return data.clientSecret;
+}
+
 onMount(async () => {
   const stripe = await loadStripeInstance();
 
-  // Initialize checkout with client secret (can be a Promise)
-  const checkout = await stripe.initCheckout({
-    clientSecret: fetchClientSecret(), // Returns Promise<string>
+  checkout = await stripe.initCheckout({
+    clientSecret: fetchClientSecret(),
+    elementsOptions: {
+      appearance: getAppearance(),
+    },
   });
 
-  // Create and mount payment element
+  // Payment element with wallet support
   const paymentElement = checkout.createPaymentElement({
     layout: "tabs",
     paymentMethodOrder: [
@@ -125,31 +210,31 @@ onMount(async () => {
       "cashapp",
       "klarna",
     ],
+    wallets: {
+      applePay: "auto",
+      googlePay: "auto",
+      link: "auto",
+    },
   });
   paymentElement.mount("#payment-element");
 
-  // Create and mount email element (Stripe's secure iframe)
+  // Billing address element
+  const billingElement = checkout.createBillingAddressElement();
+  billingElement.mount("#billing-element");
+
+  // Email element (not fully typed in @stripe/stripe-js)
   const emailElement = (checkout as any).createEmailElement();
   emailElement.mount("#email-element");
-
-  // Listen for email changes
   emailElement.on("change", (event: any) => {
-    if (event.value?.email) {
-      email = event.value.email;
-    }
-    if (event.error) {
-      errorMessage = event.error.message;
-    }
+    if (event.value?.email) email = event.value.email;
+    if (event.error) errorMessage = event.error.message;
   });
 
   // Load actions for payment confirmation
   const result = await checkout.loadActions();
   if (result.type === "success") {
     actions = result.actions;
-
-    // Get session info (totals, line items, etc.)
-    const session = actions.getSession();
-    stripeTotal = session.total.total.amount; // e.g., "$36.00"
+    stripeTotal = actions.getSession().total.total.amount;
   }
 });
 ```
@@ -160,15 +245,36 @@ onMount(async () => {
 async function handlePayment() {
   if (!actions) return;
 
-  // Check if email needs to be updated
+  // Update email if needed
   const session = actions.getSession();
   if (!session.email && email) {
     await actions.updateEmail(email);
   }
 
-  errorMessage = "";
-  const result = await actions.confirm();
+  // Update all line item quantities before confirmation
+  const updatePromises = getItems()
+    .map((item) => {
+      const stripeLineItemId = lineItemMapping[item.id];
+      if (!stripeLineItemId) {
+        console.error(`No Stripe lineItem found for OrderItem ${item.id}`);
+        return null;
+      }
+      return actions?.updateLineItemQuantity({
+        lineItem: stripeLineItemId,
+        quantity: item.quantity,
+      });
+    })
+    .filter(Boolean);
 
+  const results = await Promise.all(updatePromises);
+  const errorResult = results.find((r) => r?.type === "error");
+  if (errorResult) {
+    errorMessage = errorResult.error.message;
+    return;
+  }
+
+  // Confirm payment
+  const result = await actions.confirm();
   if (result.type === "error") {
     errorMessage = result.error.message;
   }
@@ -189,12 +295,12 @@ async function handlePayment() {
   </div>
 
   <form id="payment-form">
-    <div id="email-element"></div>
-    <div id="payment-method">Payment Method</div>
     <div id="payment-element"></div>
+    <div id="email-element"></div>
+    <div id="billing-element"></div>
 
-    <button id="submit" onclick={handlePayment}>
-      <span>Pay now</span>
+    <button id="submit" onclick={handlePayment} disabled={buttonDisabled}>
+      <span>{buttonStatus}</span>
     </button>
 
     {#if errorMessage}
@@ -320,24 +426,186 @@ const emailElement = (checkout as any).createEmailElement();
 
 ### Test Cards
 
-- Success: `4242 4242 4242 4242`
-- 3D Secure: `4000 0025 0000 3155`
-- Declined: `4000 0000 0000 9995`
+| Card Number           | Scenario                      |
+| --------------------- | ----------------------------- |
+| `4242 4242 4242 4242` | Success                       |
+| `4000 0025 0000 3155` | 3D Secure required            |
+| `4000 0000 0000 9995` | Declined (insufficient funds) |
+| `4000 0000 0000 0002` | Declined (generic)            |
+
+Use any future expiration date and any 3-digit CVC.
 
 ### Test Flow
+
+1. Start webhook listener: `just webhook`
+2. Start dev server: `just dev` (in separate terminal)
+3. Copy `whsec_xxx` from webhook output to `.env` as `STRIPE_WEBHOOK_SECRET`
+4. Restart dev server to pick up env var
+5. Add items to cart
+6. Navigate to cart page
+7. Fill email in Stripe element
+8. Enter test card details
+9. Click "Pay now"
+10. Verify redirect to success page
+11. Check `stripe listen` terminal for webhook events:
+    ```
+    --> checkout.session.completed [evt_xxx]
+    <-- [200] POST http://localhost:5173/api/stripe/webhook
+    ```
+12. Verify drop `sold_count` updated in database
+
+## Webhook Handler
+
+**File**: `src/routes/api/stripe/webhook/+server.ts`
+
+The webhook handler processes payment events from Stripe to update drop inventory.
+
+### Handled Events
+
+- `checkout.session.completed` - Updates drop `sold_count` when payment succeeds
+- `checkout.session.async_payment_succeeded` - Handles async payment methods (bank transfers)
+- `checkout.session.expired` - Logs expired sessions (could release reserved capacity)
+
+### Webhook Secret Configuration
+
+The `STRIPE_WEBHOOK_SECRET` environment variable is **required** for webhook signature verification. Without it, the endpoint returns a 500 error.
+
+**For local development:**
+
+1. Run the Stripe CLI listener (see Local Development section below)
+2. Copy the `whsec_xxx` signing secret from the CLI output
+3. Add to `.env`:
+   ```
+   STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+   ```
+
+**For production:**
+
+1. Go to Stripe Dashboard → Developers → Webhooks
+2. Create endpoint: `https://yourdomain.com/api/stripe/webhook`
+3. Select events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`
+4. Copy the signing secret to your production environment variables
+
+## Local Development
+
+### Running with Stripe Webhooks
+
+Use the `just webhook` command to start the Stripe CLI listener:
+
+```bash
+# Terminal 1: Start webhook listener
+just webhook
+
+# Terminal 2: Start dev server
+just dev
+```
+
+The `webhook` recipe runs:
+
+```bash
+stripe listen --forward-to localhost:5173/api/stripe/webhook
+```
+
+**Note**: You must run `stripe login` once before using the webhook listener.
+
+### Testing Payments
 
 1. Add items to cart
 2. Navigate to cart page
 3. Fill email in Stripe element
-4. Enter test card details
+4. Enter test card: `4242 4242 4242 4242` (any future date, any CVC)
 5. Click "Pay now"
 6. Verify redirect to success page
-7. Check Stripe Dashboard → Payments
+7. Check `stripe listen` output for webhook events
+8. Verify drop `sold_count` updated in database
+
+## Line Item Quantity Updates
+
+The checkout supports updating line item quantities client-side before payment confirmation.
+
+### Server Configuration
+
+Line items must have `adjustable_quantity` enabled:
+
+```typescript
+const line_items = items.map((item: any) => ({
+  price_data: { ... },
+  quantity: item.quantity,
+  adjustable_quantity: {
+    enabled: true,
+    minimum: 0,
+    maximum: 50,
+  },
+}));
+```
+
+### Line Item ID Mapping
+
+Stripe generates its own line item IDs. The server returns a mapping from your order item IDs to Stripe's line item IDs:
+
+```typescript
+// Server retrieves line items after session creation
+const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+  session.id,
+  {
+    expand: ["line_items"],
+  },
+);
+
+// Build mapping: orderItemId → stripeLineItemId
+const lineItemMapping: Record<number, string> = {};
+items.forEach((item: any, index: number) => {
+  const stripeLineItem = sessionWithLineItems.line_items?.data[index];
+  if (stripeLineItem) {
+    lineItemMapping[item.id] = stripeLineItem.id;
+  }
+});
+
+return json({ clientSecret, lineItemMapping });
+```
+
+### Client Usage
+
+```typescript
+// Use the mapping to update quantities
+const stripeLineItemId = lineItemMapping[item.id];
+await actions.updateLineItemQuantity({
+  lineItem: stripeLineItemId,
+  quantity: item.quantity,
+});
+```
+
+## Cart Reactivity
+
+When the cart changes (items added/removed), the Stripe checkout session must be recreated. This is handled by:
+
+1. **Cache invalidation**: `clearCheckoutCache()` removes the cached session from localStorage
+2. **Component remount**: The cart page uses `{#key cartHash}` to force `StripeGwy` to remount when cart changes
+
+**File**: `src/routes/cart/+page.svelte`
+
+```svelte
+<script>
+  var cartHash = $derived(getCartHash());
+</script>
+
+{#key cartHash}
+  <StripeGwy />
+{/key}
+```
+
+This ensures a fresh checkout session is fetched whenever the cart contents change.
+
+## PaymentIntent Timing
+
+With `ui_mode: "custom"`, the PaymentIntent is **not** created when the Checkout Session is created. It's only created when `actions.confirm()` is called. This means:
+
+- PaymentIntents won't appear in Stripe Dashboard until user clicks "Pay now"
+- The webhook `checkout.session.completed` fires after successful payment confirmation
 
 ## Future Enhancements
 
-- [ ] Webhook handler for `checkout.session.completed`
-- [ ] Drop capacity management
 - [ ] Session expiration handling
 - [ ] Order success page with session details
 - [ ] Error recovery for abandoned sessions
+- [ ] Reservation system for capacity (hold inventory during checkout)
