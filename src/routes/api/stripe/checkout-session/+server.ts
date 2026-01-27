@@ -44,6 +44,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
         unit_amount: item.price * 100, // Convert to cents
       },
       quantity: item.quantity,
+      // allows for actions.updateLineItemQuantity() on client
+      adjustable_quantity: {
+        enabled: true,
+        minimum: 0,
+        maximum: 50,
+      },
     }));
     console.log("Creating checkout session for items:", items);
 

@@ -185,12 +185,12 @@
     // https://docs.stripe.com/js/custom_checkout/update_line_item_quantity
     // Update all line items in parallel
     const updatePromises = getItems().map(item => {
-    const stripeLineItemId = lineItemMapping[item.id];
-    if (!stripeLineItemId) {
-      console.error(`No Stripe lineItem found for OrderItem ${item.id}`);
-      return null;
-    }
-    return actions?.updateLineItemQuantity({
+      const stripeLineItemId = lineItemMapping[item.id];
+      if (!stripeLineItemId) {
+        console.error(`No Stripe lineItem found for OrderItem ${item.id}`);
+        return null;
+      }
+      return actions?.updateLineItemQuantity({
         lineItem: stripeLineItemId,
         quantity: item.quantity
       });
