@@ -28,14 +28,13 @@
 	<div class="item-price">
 		${itemTotal}
 	</div>
-	<div class="remove-one">
-		<button type="button" onclick={() => reduceByOne(id)}>
-			-1
-		</button>
-	</div>
-	<div class="cart-remove">
+	<div class="remove">
 		<button type="button" onclick={() => removeFromCart(id)}>
 			<Trash2 size={18} />
+		</button>
+
+		<button type="button" onclick={() => reduceByOne(id)}>
+			-1
 		</button>
 	</div>
 </div>
@@ -77,17 +76,13 @@
 		margin-right: 0.5rem;
 	}
 
-	.remove-one button {
-		border: none;
-		color: #dc2626;
+	.remove {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;  /* optional: adds spacing between buttons */
 	}
 
-	.remove-one button:hover {
-		border: 1px dotted #dc2626;
-		background: transparent;
-	}
-
-	.cart-remove button {
+	.remove button {
 		border: none;
 		background: transparent;
 		padding: 0.25rem;
@@ -95,12 +90,13 @@
 		transition: transform 0.2s ease, color 0.2s ease;
 	}
 
-	.cart-remove button:hover {
+	.remove button:hover {
 		background: transparent;
 		color: #991b1b;
+		border: 1px solid #991b1b;
 	}
 
-	.cart-remove button:active {
+	.remove button:active {
 		transform: translateY(1px);
 	}
 </style>
