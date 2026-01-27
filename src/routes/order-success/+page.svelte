@@ -2,8 +2,10 @@
   import { page } from '$app/state';
   import { emptyCart } from '$lib/cart/cart.svelte';
   import { onMount } from 'svelte';
+  import type { PageProps } from './$types';
 
-  const orderID = $derived(page.url.searchParams.get('id') || '');
+  const orderID = $derived(page.url.searchParams.get('session_id') || '');
+  let { data }: PageProps = $props();
 
   onMount(() => {
     emptyCart();
@@ -20,16 +22,26 @@
   <div class="success-icon">😊</div>
   <h1>Payment Successful!</h1>
 
+  <h2>Order Details</h2>
   {#if orderID}
     <div class="order-details">
-      <h2>Order Details</h2>
-      <p><strong>Order ID:</strong> {orderID}</p>
+      <p>
+        <strong>Order ID:</strong> <br />
+        {orderID}
+      </p>
       <p class="info">
-        A confirmation email will be sent to your PayPal email address. Thank
-        you for your order.
+        A confirmation email will be sent to {data.customerEmail}. Thank you for
+        your order.
       </p>
     </div>
+  {:else}
+    <p>
+      There was an issue gathering your orderID, sorry. You should get an email
+      receipt to {data.customerEmail} for your order, but if you have any
+      issues, reach out to us over email!
+    </p>
   {/if}
+  <b>TODO: PROVIDE EMAIL ON FAILED ORDERID</b>
 
   <div class="actions">
     <a href="/shop" class="button primary">Continue Shopping</a>
@@ -58,18 +70,18 @@
     color: #333;
   }
 
+  h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
   .order-details {
     background: #f8f9fa;
     border-radius: 8px;
     padding: 1rem;
     margin: 2rem 0;
     text-align: left;
-  }
-
-  .order-details h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-    color: #333;
   }
 
   .order-details p {

@@ -1,5 +1,4 @@
 import { getStripe } from "$lib/server/stripe";
-import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -13,22 +12,20 @@ export const load: PageServerLoad = async ({ url }) => {
     const stripe = getStripe();
 
     // Retrieve the checkout session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['line_items', 'payment_intent']
+    });
 
     // Verify payment was successful
     if (session.payment_status !== "paid") {
       return { success: false, error: "Payment not completed" };
     }
 
-    // Get current capacity (webhook will have updated it)
-    const currDrop = await getCurrentDrop();
-    const capacity = currDrop ? await getDropCapacity(currDrop.id) : null;
-
     return {
-      success: true,
-      sessionId: session.id,
+      orderTotal: session.amount_total,
+      items: session.line_items?.data,
+      paymentStatus: session.payment_status,
       customerEmail: session.customer_details?.email,
-      dropCapacity: capacity,
     };
   } catch (err) {
     console.error("[OrderSuccess] Failed to verify payment:", err);
