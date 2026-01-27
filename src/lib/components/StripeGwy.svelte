@@ -177,9 +177,9 @@
 
     // https://docs.stripe.com/js/custom_checkout/session_object
     var session = actions.getSession();
-    console.debug('Session email:', session.email);
     if (!session.email && email) {
       await actions.updateEmail(email);
+      console.debug('Session email updated to:', session.email);
     }
 
     // https://docs.stripe.com/js/custom_checkout/update_line_item_quantity
