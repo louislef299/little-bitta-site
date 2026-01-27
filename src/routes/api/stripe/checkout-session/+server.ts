@@ -37,6 +37,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
         currency: "usd",
         product_data: {
           name: item.name,
+          metadata: {
+            order_item_id: item.id.toString()
+          }
         },
         unit_amount: item.price * 100, // Convert to cents
       },
@@ -58,11 +61,26 @@ export const POST: RequestHandler = async ({ request, url }) => {
     });
 
     // Note: sold_count is updated AFTER payment confirmation (in order-success
-    // or webhook) not here, since the user hasn't paid yet
+    // or webhook) not here, since the user hasn't paid yet.
+
+    // Gather line_items for metadata
+    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['line_items']
+    });
+
+    // Build mapping by array index (items are in same order)
+    const lineItemMapping: Record<number, string> = {};
+    items.forEach((item: any, index: number) => {
+      const stripeLineItem = sessionWithLineItems.line_items?.data[index];
+      if (stripeLineItem) {
+        lineItemMapping[item.id] = stripeLineItem.id;
+      }
+    });
 
     return json({
       clientSecret: session.client_secret,
       dropCapacity: capacity,
+      lineItemMapping,
     });
   } catch (err) {
     console.error("Checkout session creation failed:", err);

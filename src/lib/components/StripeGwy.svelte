@@ -25,6 +25,7 @@
   let paymentStatus: string = $state("Payment Method Loading");
   let buttonStatus: string = $state("Pay Now");
   let buttonDisabled: boolean = $state(false);
+  let lineItemMapping: Record<number, string> = {};
 
   function getAppearance(): Appearance {
     return {
@@ -35,6 +36,7 @@
   interface CheckoutCache {
     clientSecret: string;
     cartHash: string;
+    lineItemMapping: Record<number, string>; 
   }
 
   async function fetchClientSecret(): Promise<string> {
@@ -74,11 +76,15 @@
       throw new Error("Invalid client secret received");
     }
 
+    // Capture current lineItemMap
+    lineItemMapping = data.lineItemMapping;
+
     // Cache the new session
     if (browser) {
       localStorage.setItem(cacheKey, JSON.stringify({
         clientSecret: data.clientSecret,
-        cartHash: currentHash
+        cartHash: currentHash,
+        lineItemMapping: data.lineItemMapping,
       }));
       console.debug('[StripeGwy] Cached new checkout session');
     }
@@ -135,6 +141,7 @@
         });
 
         checkout.loadActions().then(function(result) {
+          // https://docs.stripe.com/js/custom_checkout/session_object
           if (result.type === 'success') {
             // Use the actions object to interact with the Checkout Session
             actions = result.actions;
@@ -142,7 +149,7 @@
             if (session != undefined) {
               stripeTotal = session.total.total.amount;
             } else {
-              console.error("session was undefined")
+              console.error("[StripeGwy] Session was undefined")
               stripeTotal = "undefined"
             }
           } else {
@@ -168,11 +175,36 @@
     }
     buttonStatus = 'Processing...';
 
-    
-    const session = actions.getSession();
+    // https://docs.stripe.com/js/custom_checkout/session_object
+    var session = actions.getSession();
     console.debug('Session email:', session.email);
     if (!session.email && email) {
       await actions.updateEmail(email);
+    }
+
+    // https://docs.stripe.com/js/custom_checkout/update_line_item_quantity
+    // Update all line items in parallel
+    const updatePromises = getItems().map(item => {
+    const stripeLineItemId = lineItemMapping[item.id];
+    if (!stripeLineItemId) {
+      console.error(`No Stripe lineItem found for OrderItem ${item.id}`);
+      return null;
+    }
+    return actions?.updateLineItemQuantity({
+        lineItem: stripeLineItemId,
+        quantity: item.quantity
+      });
+    }).filter(Boolean);
+    const results = await Promise.all(updatePromises);
+  
+    // Check for any errors
+    const errorResult = results.find(r => r?.type === 'error');
+    if (errorResult) {
+      console.error(`[StripeGwy] Could not update line items(${errorResult.error.code}): ${errorResult.error.message}`)
+      errorMessage = errorResult.error.message;
+      buttonStatus = "Pay Now";
+      buttonDisabled = false;
+      return;
     }
   
     errorMessage = '';

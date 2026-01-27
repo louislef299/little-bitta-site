@@ -1,7 +1,9 @@
 <script>
-	import { cart } from '$lib/cart/cart.svelte';
+	import { cart, getCartHash } from '$lib/cart/cart.svelte';
 	import CartItem from '$lib/components/CartItem.svelte';
     import StripeGwy from '$lib/components/StripeGwy.svelte';
+
+	var cartHash = $derived(getCartHash());
 </script>
 
 <div class="cart-container">
@@ -15,7 +17,9 @@
 
 		<div class="cart-footer">
 			<div class="payment">
-				<StripeGwy />
+				{#key cartHash}
+					<StripeGwy />
+				{/key}
 			</div>
 		</div>
 	{:else}
