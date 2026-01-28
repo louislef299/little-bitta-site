@@ -9,11 +9,11 @@
     type Props = {
 		product: Product
 		drop: Drop;
-		capacity: ProductCapacity;
+		pcap: ProductCapacity;
 	};
-	let { product, drop, capacity }: Props = $props();
+	let { product, drop, pcap }: Props = $props();
 
-    let isAvailable = $derived( capacity.max > capacity.sold + getTotalForItem(product.id) );
+    let isAvailable = $derived( pcap.max > pcap.sold + getTotalForItem(product.id) );
 </script>
 
 <div class="button-group">

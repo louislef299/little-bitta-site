@@ -34,7 +34,7 @@
     <div class="item-info">
         <i>${product.price}/lb</i>
     </div>
-    <AddToCart {product} {drop} capacity={pcap}/>
+    <AddToCart {product} {drop} {pcap}/>
 </div>
 
 <style>

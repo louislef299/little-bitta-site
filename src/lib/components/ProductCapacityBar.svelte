@@ -3,19 +3,20 @@
     import type { ProductCapacity } from '$lib/server/db/drop-product';
 
     type Props = {
-        capacity: ProductCapacity;
+        pcap: ProductCapacity;
         productId: number;
     };
-    let { capacity, productId }: Props = $props();
+    let { pcap, productId }: Props = $props();
 
     // Get quantity of this specific product in cart
     const cartQuantity = $derived(getTotalForItem(productId));
 
     const percentage = $derived(
-        ((cartQuantity + capacity.sold) / capacity.max) * 100
+        ((cartQuantity + pcap.sold) / pcap.max) * 100
     );
 
-    const isSoldOut = $derived(capacity.available === 0);
+    var availableForItem = $derived(pcap.max - (getTotalForItem(productId) + pcap.sold));
+    const isSoldOut = $derived(availableForItem === 0);
 </script>
 
 <div class="capacity-bar">
@@ -26,9 +27,9 @@
         {#if isSoldOut}
             Sold Out
         {:else}
-            {cartQuantity + capacity.sold}/{capacity.max}
-            {#if capacity.available <= 3}
-                <span class="low-stock">({capacity.available} left!)</span>
+            {cartQuantity + pcap.sold}/{pcap.max}
+            {#if availableForItem <= 3}
+                <span class="low-stock">({availableForItem} left!)</span>
             {/if}
         {/if}
     </div>
@@ -79,7 +80,7 @@
     }
 
     .low-stock {
-        color: #f59e0b;
+        color: var(--accent-color);
         font-weight: 500;
     }
 </style>

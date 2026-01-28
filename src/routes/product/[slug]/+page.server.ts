@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ params }) => {
   }
 
   // Get product-level capacity for this product in the current drop
-  const capacity = await getProductCapacity(drop.id, product.id);
+  const pcap = await getProductCapacity(drop.id, product.id);
 
-  return { product, drop, capacity };
+  return { product, drop, pcap };
 };

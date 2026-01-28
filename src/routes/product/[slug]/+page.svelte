@@ -4,9 +4,9 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const { product, drop, capacity } = $derived(data);
+	const { product, drop, pcap } = $derived(data);
 
-	const isSoldOut = $derived(capacity.available === 0);
+	const isSoldOut = $derived(pcap.available === 0);
 </script>
 
 <article class="granola-detail">
@@ -30,11 +30,11 @@
 	</section>
 
 	<section class="cart">
-		<AddToCart {product} {drop} {capacity}/>
+		<AddToCart {product} {drop} {pcap}/>
 	</section>
 
 	<section class="capacity">
-		<ProductCapacityBar {capacity} productId={product.id} />
+		<ProductCapacityBar {pcap} productId={product.id} />
 	</section>
 </article>
 
