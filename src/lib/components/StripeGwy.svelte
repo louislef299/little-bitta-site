@@ -27,6 +27,9 @@
   let buttonDisabled: boolean = $state(false);
   let lineItemMapping: Record<number, string> = {};
 
+  let locationValid: boolean | null = $state(null);
+  let validateTimeout: ReturnType<typeof setTimeout>;
+
   function getAppearance(): Appearance {
     return {
       theme: isDark() ? 'night' : 'stripe',
@@ -40,15 +43,30 @@
   }
 
   async function validateLocation(address: any) {
-    const response = await fetch('/api/location-check', {
-      method: 'POST',
-      body: JSON.stringify(address),
-      headers: {
-        'content-type': 'application/json'
+    var previousMsg = buttonStatus;
+    buttonStatus = "Validating Location...";
+    try {
+      const response = await fetch('/api/location-check', {
+        method: 'POST',
+        body: JSON.stringify(address),
+        headers: { 'content-type': 'application/json' }
+      });
+      
+      locationValid = response.ok;
+      if (!response.ok) {
+        const data = await response.json();
+        errorMessage = data.message ?? "Location not supported";
+        buttonDisabled = true;
+      } else {
+        errorMessage = '';
+        buttonDisabled = false;
       }
-    });
-
-    console.log(response.json());
+    } catch (e) {
+      locationValid = false;
+      errorMessage = "Failed to validate location";
+    } finally {
+      buttonStatus = previousMsg;
+    }
   }
 
   async function fetchClientSecret(): Promise<string> {
@@ -140,8 +158,8 @@
         billingElement.mount('#billing-element');
         billingElement.on('change', (event: any) => {
           if (event.complete) {
-            console.log(`Billing address is complete: ${event.value.address.city}`);
-            validateLocation(event.value.address);
+            clearTimeout(validateTimeout);
+            validateTimeout = setTimeout(() => validateLocation(event.value.address), 300);
           }
           if (event.error) {
             errorMessage = event.error.message;
@@ -248,11 +266,16 @@
 </script>
 
 <div class="stripe-checkout">
-  <div id="calculated-total">
-    {#if stripeTotal !== ""}
-      <h4>Total: {stripeTotal}</h4>
-    {:else}
-      <h4>Calculating...</h4>
+  <div class="total">
+    <div id="calculated-total">
+      {#if stripeTotal !== ""}
+        <h4>Total: {stripeTotal}</h4>
+      {:else}
+        <h4>Calculating...</h4>
+      {/if}
+    </div>
+    {#if errorMessage}
+      <div id="payment-message">{errorMessage}</div>
     {/if}
   </div>
 
@@ -262,13 +285,12 @@
     <div id="payment-element"></div>
     <div id="email-element"></div>
     <div id="billing-element"></div>
+
+    <!-- the Pay Now button -->
     <button id="submit" onclick={handlePayment} disabled={buttonDisabled}>
       <div class="spinner hidden" id="spinner"></div>
       <span id="button-text">{buttonStatus}</span>
     </button>
-    {#if errorMessage}
-      <div id="payment-message">{errorMessage}</div>
-    {/if}
   </form>
 </div>
 
