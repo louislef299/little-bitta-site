@@ -41,7 +41,7 @@
 
 <style>
 	.cart-item {
-		border: 1px dotted rgb(170, 3, 248);
+		border: 1px dotted var(--accent-color);
 		border-radius: 8px;
 		padding: 1rem;
 		display: flex;

@@ -67,7 +67,7 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        background: #f59e0b;
+        background: var(--accent-color);
         color: white;
         padding: 3px 8px;
         border-radius: 4px;
