@@ -24,17 +24,19 @@
     }
 </script>
 
-<h1>Granola {#if isCurrentDropAvailable} Available {:else} Unavailable {/if}</h1>
+<h1>
+    Granola {#if isCurrentDropAvailable} Available {:else} Unavailable {/if}
+</h1>
 
 <div>
-    <h3>Currently shopping for drop: {drop.display_name} {drop.year}</h3>
-    <CapacityBar {capacity} />
+    <h2>{drop.display_name} {drop.year} Drop</h2>
 
     {#if !isCurrentDropAvailable}
         <p class="capacity-warning">
             This drop is at capacity.
         </p>
     {/if}
+    <a href="/#Limited-Drop-Availability">how it works</a>
 </div>
 
 <ul>

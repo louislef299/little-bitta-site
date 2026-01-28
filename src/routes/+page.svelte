@@ -8,24 +8,23 @@
 
 <h2>Granola Made <i>Right</i></h2>
 <p>
-    Minnesota based, homemade, small-batch granola. With everything made
-    locally, and by the pro herself, you can comfortably know that you will get
-    the best taste and quality in your granola, every time. To learn more about
-    our story, check out <a href="/about"><code>/about</code></a>.
+    Minneapolis based, homemade, small-batch granola. You can order granola
+    online, but we currently don't support delivery, so it is your
+    responsibility to pick it up yourself.
 </p>
 
-<h2>Contact Michele Directly</h2>
-<p>
-    We are currently a small brand and only allow orders to run through email. If
-    you would like to try out our granola, feel free to email us at
-    littlebittagranola@gmail.com with your name, address and order request and we
-    will get back to you as soon as possible. We currently only operate in the
-    Minnesota metro area.
-</p>
+<h2>How It Works</h2>
 
-<h2>Limited Drop Availability</h2>
+<!-- TODO clean this up -->
+<ul>
+    <li>Buy Granola</li>
+    <li>Receive Email</li>
+    <li>Pick Up Granola</li>
+    <li>Consume Granola</li>
+    <li>Buy Again for Next Drop</li>
+</ul>
 
-<h3>{drop.display_name} {drop.year}</h3>
+<h3>Current Drop is for {drop.display_name} {drop.year}</h3>
 <CapacityBar {capacity} />
 
 <p>
