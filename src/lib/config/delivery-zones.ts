@@ -1,6 +1,9 @@
 export const DELIVERY_ERROR_MESSAGE =
   "Sorry, our current customer base must be within 50 miles of Edina, MN.";
 
+// Currently, just hard-coding zip codes. Can use MapBox in the future if we
+// would like:
+// https://docs.mapbox.com/mapbox-search-js/guides/geocoding/
 export const ALLOWED_ZIP_CODES = new Set([
   // Edina
   "55343",
