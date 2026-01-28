@@ -30,7 +30,7 @@
 	</section>
 
 	<section class="cart">
-		<AddToCart id={product.id} name={product.name} price={product.price} {drop} {capacity}/>
+		<AddToCart {product} {drop} {capacity}/>
 	</section>
 
 	<section class="capacity">

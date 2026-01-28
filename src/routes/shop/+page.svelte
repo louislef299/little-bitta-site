@@ -2,9 +2,8 @@
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import type { PageProps } from './$types';
-    import AddToCart from '$lib/components/AddToCart.svelte';
     import type { ProductCapacity } from '$lib/server/db/drop-product';
-    import ShopImage from '$lib/components/ShopImage.svelte';
+    import ShopProduct from '$lib/components/ShopProduct.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -45,39 +44,14 @@
 
 <ul>
 	{#each products as item}
-        {@const capacity=getCapacity(item.id)}
+    {@const capacity=getCapacity(item.id)}
 		<li>
-            <ShopImage product={item} productCapacity={capacity} />
-            <div class="item-name">
-                <a href="/product/{item.slug}">
-                    <strong>{item.name}</strong>
-                </a>
-            </div>
-
-            <div class="item-footer">
-                <div class="item-info">
-                    <i>${item.price}/lb</i>
-                </div>
-                <AddToCart id={item.id} name={item.name} price={item.price} {drop} {capacity}/>
-            </div>
-        </li>
+      <ShopProduct product={item} pcap={capacity} drop={drop} />
+    </li>
 	{/each}
 </ul>
 
 <style>
-    .item-name {
-        text-align: center;
-    }
-
-    .item-footer {
-        margin-top: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        text-align: center;
-    }
-
     ul {
       list-style: none;
       padding: 0;
