@@ -39,6 +39,18 @@
     lineItemMapping: Record<number, string>; 
   }
 
+  async function validateLocation(address: any) {
+    const response = await fetch('/api/location-check', {
+      method: 'POST',
+      body: JSON.stringify(address),
+      headers: {
+        'content-type': 'application/json'
+      }
+    });
+
+    console.log(response.json());
+  }
+
   async function fetchClientSecret(): Promise<string> {
     const currentHash = getCartHash();
     const cacheKey = getCheckoutCacheKey();
@@ -126,6 +138,15 @@
         // https://docs.stripe.com/js/custom_checkout/create_billing_address_element
         const billingElement = checkout.createBillingAddressElement();
         billingElement.mount('#billing-element');
+        billingElement.on('change', (event: any) => {
+          if (event.complete) {
+            console.log(`Billing address is complete: ${event.value.address.city}`);
+            validateLocation(event.value.address);
+          }
+          if (event.error) {
+            errorMessage = event.error.message;
+          }
+        });
 
         // the clover API method isn't typed in @stripe/stripe-js
         const emailElement = (checkout as any).createEmailElement();
@@ -181,6 +202,12 @@
     if (!session.email && email) {
       await actions.updateEmail(email);
       console.debug('Session email updated to:', session.email);
+    }
+
+    if (session.billingAddress) {
+      console.debug(`here is the billing address: ${session.billingAddress}`);
+    } else {
+      console.error('there was no billing address');
     }
 
     // https://docs.stripe.com/js/custom_checkout/update_line_item_quantity
