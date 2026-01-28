@@ -25,7 +25,9 @@
         <div class="progress" style="width: {dropPercentage}%;"></div>
     </div>
     {#if capacity}
-        <div class="capacity">{cartItemCount + capacity.current}/{capacity.max}</div>
+        <div class="capacity">
+            {cartItemCount + capacity.current}/{capacity.max}
+        </div>
     {/if}
 </div>
 
