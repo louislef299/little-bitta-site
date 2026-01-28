@@ -15,10 +15,6 @@
     }
 </script>
 
-<svelte:head>
-    <title>Admin - Dev Only</title>
-</svelte:head>
-
 <div class="admin">
     <h1>Admin Dashboard (Dev Only)</h1>
     <p class="warning">This page is only accessible in development mode.</p>

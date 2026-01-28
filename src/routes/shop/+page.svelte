@@ -33,13 +33,15 @@
     }
 </script>
 
-<h1>
-    Granola Shop
-</h1>
-
 <div>
-    <h2>{drop.display_name} {drop.year} Drop</h2>
-    <a href="/#Limited-Drop-Availability">how it works</a>
+    <h2>Shopping for Drop <em>{drop.display_name} {drop.year}</em></h2>
+
+    <p>
+      Orders must be placed by <em>{drop.end_date}</em> and you can expect them
+      to be ready for pickup on <em>{drop.prep_date}</em>. You are responsible
+      for picking up the granola and an address will be provided in your
+      receipt.
+    </p>
 </div>
 
 <ul>

@@ -46,6 +46,7 @@ export async function initDevDb() {
       status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'active', 'sold_out', 'ended')),
       start_date TEXT,
       end_date TEXT,
+      prep_date TEXT,
       description TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -55,9 +56,9 @@ export async function initDevDb() {
   // Seed drops data
   const existingDrops = await sql`SELECT COUNT(*) as count FROM drops`;
   if (existingDrops[0].count === 0) {
-    await sql`INSERT INTO drops (display_name, year, status, description) VALUES
-      ('January', 2026, 'active', 'Start the new year with delicious granola!'),
-      ('February', 2026, 'upcoming', 'Valentine special coming soon!')
+    await sql`INSERT INTO drops (display_name, year, status, description, end_date, prep_date) VALUES
+      ('January', 2026, 'active', 'Start the new year with delicious granola!', '2026-01-31', '2026-02-12'),
+      ('February', 2026, 'upcoming', 'Valentine special coming soon!', '2026-02-29', '2026-03-12')
     `;
   }
 

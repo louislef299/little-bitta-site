@@ -7,12 +7,6 @@
 </script>
 
 <div class="cart-container">
-	<!-- TODO: Make the final drop date dynamic-->
-    <p>
-        Orders must be placed by January 31st, 2026<br />
-        Orders will be ready for pickup February 10th, 2026<br />
-		YOU ARE EXPECTED TO PICK IT UP
-    </p>
 	{#if cart.items.length > 0}
 		<div class="cart-items">
 			{#each cart.items as item}

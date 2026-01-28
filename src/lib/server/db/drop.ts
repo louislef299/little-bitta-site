@@ -9,6 +9,7 @@ export interface Drop {
   status: DropStatus;
   start_date?: string | null;
   end_date?: string | null;
+  prep_date?: string | null;
   description?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -35,7 +36,7 @@ export async function getDropById(id: number): Promise<Drop | null> {
 export async function getAllDrops(): Promise<Drop[]> {
   return (await sql`
     SELECT id, display_name, year, status,
-           start_date, end_date, description, created_at, updated_at
+      start_date, end_date, prep_date, description, created_at, updated_at
     FROM drops ORDER BY year DESC, id DESC
   `) as Drop[];
 }
@@ -44,7 +45,7 @@ export async function getAllDrops(): Promise<Drop[]> {
 export async function getDropsByStatus(status: DropStatus): Promise<Drop[]> {
   return (await sql`
     SELECT id, display_name, year, status,
-           start_date, end_date, description, created_at, updated_at
+      start_date, end_date, prep_date, description, created_at, updated_at
     FROM drops WHERE status = ${status} ORDER BY year DESC, id DESC
   `) as Drop[];
 }
@@ -53,7 +54,7 @@ export async function getDropsByStatus(status: DropStatus): Promise<Drop[]> {
 export async function getCurrentDrop(): Promise<Drop | null> {
   const rows = await sql`
     SELECT id, display_name, year, status,
-           start_date, end_date, description, created_at, updated_at
+      start_date, end_date, prep_date, description, created_at, updated_at
     FROM drops WHERE status = 'active' LIMIT 1
   `;
   return (rows[0] as Drop) ?? null;
