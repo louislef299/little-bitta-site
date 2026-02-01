@@ -27,7 +27,6 @@
   let buttonDisabled: boolean = $state(false);
   let lineItemMapping: Record<number, string> = {};
 
-  let locationValid: boolean | null = $state(null);
   let validateTimeout: ReturnType<typeof setTimeout>;
 
   function getAppearance(): Appearance {
@@ -52,7 +51,6 @@
         headers: { 'content-type': 'application/json' }
       });
       
-      locationValid = response.ok;
       if (!response.ok) {
         const data = await response.json();
         errorMessage = data.message ?? "Location not supported";
@@ -62,7 +60,6 @@
         buttonDisabled = false;
       }
     } catch (e) {
-      locationValid = false;
       errorMessage = "Failed to validate location";
     } finally {
       buttonStatus = previousMsg;
@@ -78,7 +75,9 @@
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
-          const { clientSecret, cartHash } = JSON.parse(cached) as CheckoutCache;
+          const { 
+            clientSecret, cartHash,
+          } = JSON.parse(cached) as CheckoutCache;
           if (cartHash === currentHash) {
             console.debug('[StripeGwy] Using cached checkout session');
             return clientSecret;
@@ -122,85 +121,94 @@
     return data.clientSecret;
   }
 
+  async function initStripeCheckout(retried = false) {
+    try {
+      const stripe = await loadStripeInstance();
+      console.debug("[StripeGwy] Attempting to initiate checkout session")
+      checkout = await stripe.initCheckout({
+        clientSecret: fetchClientSecret(),
+        elementsOptions: {
+          appearance: getAppearance()
+        }
+      });
+
+      const paymentElement = checkout.createPaymentElement({
+        layout: "tabs",
+        // https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
+        // todo: https://docs.stripe.com/payments/paypal
+        paymentMethodOrder: [
+          'apple_pay', 'google_pay', 'amazon_pay',
+          'card', 'cashapp', 'klarna',
+        ],
+        wallets: {
+          applePay: 'auto',
+          googlePay: 'auto',
+          link: 'auto'
+        }
+      });
+      paymentElement.mount('#payment-element');
+
+      // https://docs.stripe.com/js/custom_checkout/create_billing_address_element
+      const billingElement = checkout.createBillingAddressElement();
+      billingElement.mount('#billing-element');
+      billingElement.on('change', (event: any) => {
+        if (event.complete) {
+          clearTimeout(validateTimeout);
+          validateTimeout = setTimeout(() => validateLocation(event.value.address), 300);
+        }
+        if (event.error) {
+          errorMessage = event.error.message;
+        }
+      });
+
+      // the clover API method isn't typed in @stripe/stripe-js
+      const emailElement = (checkout as any).createEmailElement();
+      emailElement.mount('#email-element');
+      emailElement.on('change', (event: any) => {
+        // The element might auto-sync, but capture the value if needed
+        if (event.value?.email) {
+          email = event.value.email;
+        }
+        if (event.error) {
+          errorMessage = event.error.message;
+        }
+      });
+
+      // https://docs.stripe.com/js/custom_checkout/session_object
+      const result = await checkout.loadActions();
+      if (result.type === 'success') {
+        // Use the actions object to interact with the Checkout Session
+        actions = result.actions;
+        const session = actions?.getSession();
+        if (session != undefined) {
+          stripeTotal = session.total.total.amount;
+        } else {
+          console.error("[StripeGwy] Session was undefined")
+          stripeTotal = "undefined"
+        }
+      } else {
+        throw new Error(result.error.message);
+      }
+    } catch (error) {
+      // Clear stale cached session
+      if (browser) {
+        localStorage.removeItem(getCheckoutCacheKey());
+      }
+
+      if (!retried) {
+        console.debug('[StripeGwy] Retrying with fresh session');
+        return initStripeCheckout(true);
+      }
+
+      errorMessage = error instanceof Error ? error.message : "Failed to load checkout";
+      console.error("[StripeGwy] Checkout init failed after retry:", error);
+    }
+  }
+
   console.debug(`[StripeGwy] Component instantiated; is browser: ${browser}`);
   onMount(() => {
     console.debug('[StripeGwy] onMount called');
-    (async () => {
-      // Access the global Stripe loaded from script tag
-      try {
-        const stripe = await loadStripeInstance();
-        console.debug("[StripeGwy] Attempting to initiate checkout session")
-        checkout = await stripe.initCheckout({
-          clientSecret: fetchClientSecret(),
-          elementsOptions: {
-            appearance: getAppearance()
-          }
-        });
-
-        const paymentElement = checkout.createPaymentElement({
-          layout: "tabs",
-          // https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
-          // todo: https://docs.stripe.com/payments/paypal
-          paymentMethodOrder: [
-            'apple_pay', 'google_pay', 'amazon_pay',
-            'card', 'cashapp', 'klarna',
-          ],
-          wallets: {
-            applePay: 'auto',
-            googlePay: 'auto',
-            link: 'auto'
-          }
-        });
-        paymentElement.mount('#payment-element');
-
-        // https://docs.stripe.com/js/custom_checkout/create_billing_address_element
-        const billingElement = checkout.createBillingAddressElement();
-        billingElement.mount('#billing-element');
-        billingElement.on('change', (event: any) => {
-          if (event.complete) {
-            clearTimeout(validateTimeout);
-            validateTimeout = setTimeout(() => validateLocation(event.value.address), 300);
-          }
-          if (event.error) {
-            errorMessage = event.error.message;
-          }
-        });
-
-        // the clover API method isn't typed in @stripe/stripe-js
-        const emailElement = (checkout as any).createEmailElement();
-        emailElement.mount('#email-element');
-        emailElement.on('change', (event: any) => {
-          // The element might auto-sync, but capture the value if needed
-          if (event.value?.email) {
-            email = event.value.email;
-          }
-          if (event.error) {
-            errorMessage = event.error.message;
-          }
-        });
-
-        checkout.loadActions().then(function(result) {
-          // https://docs.stripe.com/js/custom_checkout/session_object
-          if (result.type === 'success') {
-            // Use the actions object to interact with the Checkout Session
-            actions = result.actions;
-            var session = actions?.getSession();
-            if (session != undefined) {
-              stripeTotal = session.total.total.amount;
-            } else {
-              console.error("[StripeGwy] Session was undefined")
-              stripeTotal = "undefined"
-            }
-          } else {
-            console.error(`[StripeGwy] Could not load checkout actions: ${result.error}`);
-            errorMessage = result.error.message;
-          }
-        })
-      } catch (error) {
-        errorMessage = error instanceof Error ? error.message : "Failed to load checkout";
-        console.error("[StripeGwy] Checkout init failed:", error);
-      }
-    })();
+    initStripeCheckout();
 
     return () => {
       console.debug('[StripeGwy] Component unmounting');
