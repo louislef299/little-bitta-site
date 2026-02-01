@@ -8,11 +8,6 @@
     function getCapacity(dropId: number) {
         return dropCapacities[dropId] ?? { max: 0, sold: 0, available: 0 };
     }
-
-    // Group order items by order_id for display
-    function getOrderItems(orderId: number) {
-        return orderItems.filter((item: any) => item.order_id === orderId);
-    }
 </script>
 
 <div class="admin">
@@ -20,7 +15,9 @@
     <p class="warning">This page is only accessible in development mode.</p>
 
     <section>
-        <h2>Drops</h2>
+        <h2>
+            <a href="/admin/drops">Drops</a>
+        </h2>
         <table>
             <thead>
                 <tr>
