@@ -56,9 +56,9 @@ export async function initDevDb() {
   // Seed drops data
   const existingDrops = await sql`SELECT COUNT(*) as count FROM drops`;
   if (existingDrops[0].count === 0) {
-    await sql`INSERT INTO drops (display_name, year, status, description, end_date, prep_date) VALUES
-      ('January', 2026, 'active', 'Start the new year with delicious granola!', '2026-01-31', '2026-02-12'),
-      ('February', 2026, 'upcoming', 'Valentine special coming soon!', '2026-02-29', '2026-03-12')
+    await sql`INSERT INTO drops (display_name, year, status, description, start_date, end_date, prep_date) VALUES
+      ('January', 2026, 'upcoming', 'Start the new year with delicious granola!', '2026-01-01', '2026-01-31', '2026-02-12'),
+      ('February', 2026, 'upcoming', 'Valentine special coming soon!', '2026-02-01', '2026-02-28', '2026-03-12')
     `;
   }
 

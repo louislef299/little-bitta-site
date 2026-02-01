@@ -50,14 +50,25 @@ export async function getDropsByStatus(status: DropStatus): Promise<Drop[]> {
   `) as Drop[];
 }
 
-// Get the current active drop
+// Get the current drop based on date range
 export async function getCurrentDrop(): Promise<Drop | null> {
+  const now = new Date().toISOString();
   const rows = await sql`
     SELECT id, display_name, year, status,
       start_date, end_date, prep_date, description, created_at, updated_at
-    FROM drops WHERE status = 'active' LIMIT 1
+    FROM drops
+    WHERE start_date <= ${now}
+      AND end_date > ${now}
+      AND status != 'sold_out'
+      AND status != 'ended'
+    LIMIT 1
   `;
-  return (rows[0] as Drop) ?? null;
+  const drop = (rows[0] as Drop) ?? null;
+  if (drop && drop.status !== "active") {
+    await updateDropStatus(drop.id, "active");
+    drop.status = "active";
+  }
+  return drop;
 }
 
 // Get drop capacity (calculated from drop_products table)
