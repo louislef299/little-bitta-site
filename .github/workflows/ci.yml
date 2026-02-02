@@ -14,14 +14,14 @@ jobs:
       PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY }}
       SECRET_STRIPE_KEY: ${{ secrets.SECRET_STRIPE_KEY }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v2
     - run: bun install && bun run check
   bun-test:
     name: Bun Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v2
     - run: bun install && bun test
 
