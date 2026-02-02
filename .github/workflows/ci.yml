@@ -9,6 +9,10 @@ jobs:
   bun-lint:
     name: Bun Lint
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY }}
+      SECRET_STRIPE_KEY: ${{ secrets.SECRET_STRIPE_KEY }}
     steps:
     - uses: actions/checkout@v4
     - uses: oven-sh/setup-bun@v2
