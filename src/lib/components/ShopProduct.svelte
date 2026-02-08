@@ -78,6 +78,8 @@
 
     .item-name {
         text-align: center;
+        border-top: 1px dotted var(--accent-color);
+		border-radius: 4px;
     }
 
     .item-footer {
