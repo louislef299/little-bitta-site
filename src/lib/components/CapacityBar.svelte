@@ -3,7 +3,7 @@
     import type { DropCapacity } from '$lib/server/db/drop';
 
     type Props = {
-        capacity: DropCapacity | null;
+        capacity: DropCapacity;
     };
     let { capacity }: Props = $props();
 
@@ -15,6 +15,7 @@
         return count;
     });
 
+    const dCapacity = $derived(cartItemCount + capacity.current)
     const dropPercentage = $derived(
         capacity ? ((cartItemCount + capacity.current) / capacity.max) * 100 : 0
     );
@@ -24,11 +25,13 @@
     <div class="progress-container">
         <div class="progress" style="width: {dropPercentage}%;"></div>
     </div>
-    {#if capacity}
-        <div class="capacity">
-            {cartItemCount + capacity.current}/{capacity.max}
-        </div>
+    <div class="capacity">
+    {#if dCapacity <= capacity.max}
+        {cartItemCount + capacity.current}/{capacity.max}
+    {:else}
+        <p>Out of Capacity! Come back next drop :)</p>
     {/if}
+    </div>
 </div>
 
 <style>
