@@ -1,6 +1,6 @@
 import { sql } from "./db";
 
-export type DropStatus = "upcoming" | "active" | "sold_out" | "ended";
+export type DropStatus = "upcoming" | "active" | "sold_out" | "in_the_oven" | "ended";
 
 export interface Drop {
   id: number;
@@ -105,6 +105,25 @@ export async function isDropAvailable(dropId: number): Promise<boolean> {
   const capacity = await getDropCapacity(dropId);
   if (!capacity) return false;
   return capacity.available > 0;
+}
+
+// Create a new drop
+export async function createDrop(drop: {
+  display_name: string;
+  year: number;
+  status?: DropStatus;
+  start_date?: string;
+  end_date?: string;
+  prep_date?: string;
+  description?: string;
+}): Promise<number> {
+  const status = drop.status ?? "upcoming";
+  const rows = await sql`
+    INSERT INTO drops (display_name, year, status, start_date, end_date, prep_date, description)
+    VALUES (${drop.display_name}, ${drop.year}, ${status}, ${drop.start_date ?? null}, ${drop.end_date ?? null}, ${drop.prep_date ?? null}, ${drop.description ?? null})
+    RETURNING id
+  `;
+  return (rows[0] as { id: number }).id;
 }
 
 // Update drop status

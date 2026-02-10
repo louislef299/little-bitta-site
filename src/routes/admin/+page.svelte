@@ -14,6 +14,10 @@
     <h1>Admin Dashboard (Dev Only)</h1>
     <p class="warning">This page is only accessible in development mode.</p>
 
+    <nav class="admin-nav">
+        <a href="/admin/drops">Manage Drops</a>
+    </nav>
+
     <section>
         <h2>
             <a href="/admin/drops">Drops</a>
@@ -187,6 +191,26 @@
         border-radius: 4px;
         font-size: 0.9rem;
         margin-bottom: 1.5rem;
+    }
+
+    .admin-nav {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-nav a {
+        padding: 0.5rem 1rem;
+        background: var(--accent-color, #aa03f8);
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .admin-nav a:hover {
+        opacity: 0.9;
     }
 
     :global([data-theme="dark"]) .warning {
