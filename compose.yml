@@ -31,25 +31,25 @@ services:
     - bun
 
   db:
-    image: mysql:9.5
+    image: postgres:18
     container_name: db
     environment:
-    - MYSQL_ROOT_PASSWORD=password
-    - MYSQL_DATABASE=little_bitta
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_DATABASE=little_bitta
     ports:
-    - 3306:3306
+    - 5432:5432
     networks:
     - net
     volumes:
-    - data:/var/lib/mysql
+    - data:/var/lib/postgresql
     - ./config/init-db:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      test: ["CMD-SHELL", "pg_isready", "-d", "little_bitta"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 10s
 
 networks:
   net:
