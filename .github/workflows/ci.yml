@@ -23,5 +23,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v2
-    - run: bun install && bun test src
+    - uses: docker/setup-compose-action@v1
+    - run: docker compose up -d --wait db
+    - run: bun install && bun test ./src ./tests/integration
+    - if: always()
+      run: docker compose down -v
 
