@@ -5,6 +5,7 @@ import { getCurrentDrop, getDropCapacity } from "$lib/db/drop";
 export const load: PageServerLoad = async () => {
   const drop = await getCurrentDrop();
   if (!drop) {
+    console.error("No active drop configured")
     throw error(500, {
       message: "No active drop configured",
     });
