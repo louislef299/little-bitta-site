@@ -41,7 +41,7 @@ INSERT INTO products (slug, name, description, ingredients, price, image_url, pr
 -- Date ranges are wide so the first drop is active for local development.
 INSERT INTO drops (display_name, year, status, max_capacity, start_date, end_date, description) VALUES
 (
-  'January',
+  'First Half',
   2026,
   'active',
   50,
@@ -50,11 +50,11 @@ INSERT INTO drops (display_name, year, status, max_capacity, start_date, end_dat
   'Start the new year with delicious granola!'
 ),
 (
-  'February',
+  'Second Half',
   2026,
   'upcoming',
   50,
   '2026-06-01',
   '2026-12-01',
-  'Valentine special coming soon!'
+  'Summer special coming soon!'
 );
