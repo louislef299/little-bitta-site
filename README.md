@@ -26,7 +26,7 @@ This project uses a container-based architecture with progressive enhancement:
 - **Frontend:** SvelteKit with SSR (server-rendered HTML, client-side hydration)
 - **Runtime:** Bun (via svelte-adapter-bun)
 - **Reverse Proxy:** Caddy (automatic HTTPS with mkcert certificates)
-- **Database:** MySQL
+- **Database:** PostgreSQL
 - **Payments:** Stripe
 - **Deployment:** Docker Compose
 
