@@ -1,9 +1,5 @@
 import type { Handle } from "@sveltejs/kit";
 import { dev } from "$app/environment";
-import { initDevDb } from "$lib/db/db";
-
-// Initialize dev database with schema and seed data
-await initDevDb();
 
 export const handle: Handle = async ({ event, resolve }) => {
   if (!dev) return resolve(event);
