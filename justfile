@@ -57,7 +57,7 @@ clean:
 
 # Run unit tests only (no Docker required)
 test:
-    {{bun}} test
+    {{bun}} test src
 
 # Run integration tests against Postgres (requires Docker)
 test-integration:
@@ -67,4 +67,4 @@ test-integration:
 # Run all tests (unit + integration)
 test-all:
     docker compose up -d --wait db
-    {{bun}} test src tests/integration
+    {{bun}} test
