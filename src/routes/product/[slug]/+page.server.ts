@@ -1,8 +1,8 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getProductBySlug } from "$lib/server/db/product";
-import { getCurrentDrop } from "$lib/server/db/drop";
-import { getProductCapacity } from "$lib/server/db/drop-product";
+import { getProductBySlug } from "$lib/db/product";
+import { getCurrentDrop } from "$lib/db/drop";
+import { getProductCapacity } from "$lib/db/drop-product";
 
 export const load: PageServerLoad = async ({ params }) => {
   const product = await getProductBySlug(params.slug);
