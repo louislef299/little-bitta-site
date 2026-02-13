@@ -58,3 +58,14 @@ INSERT INTO drops (display_name, year, status, max_capacity, start_date, end_dat
   '2026-12-01',
   'Summer special coming soon!'
 );
+
+-- Seed drop_products (each product gets a capacity of 5 per drop)
+INSERT INTO drop_products (drop_id, product_id, max_capacity) VALUES
+(1, 1, 5),
+(1, 2, 5),
+(1, 3, 5),
+(1, 4, 5),
+(2, 1, 5),
+(2, 2, 5),
+(2, 3, 5),
+(2, 4, 5);
