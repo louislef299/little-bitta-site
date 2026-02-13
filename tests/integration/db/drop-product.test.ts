@@ -60,12 +60,14 @@ describe("getProductCapacity", () => {
     expect(capacity.available).toBe(15);
   });
 
-  test("returns default capacity when no entry exists", async () => {
+  test("returns zero capacity when no entry exists", async () => {
     const capacity = await getProductCapacity(dropId, productIds[0]);
-    expect(capacity.product_id).toBe(productIds[0]);
-    expect(capacity.max).toBe(10); // DEFAULT_MAX_CAPACITY
-    expect(capacity.sold).toBe(0);
-    expect(capacity.available).toBe(10);
+    expect(capacity).toEqual({
+      product_id: productIds[0],
+      max: 0,
+      sold: 0,
+      available: 0,
+    });
   });
 
   test("returns zero availability when sold out", async () => {
@@ -114,12 +116,10 @@ describe("getDropProductCapacities", () => {
 });
 
 describe("updateProductCapacity", () => {
-  test("creates a new entry if none exists and increments sold count", async () => {
-    const capacity = await updateProductCapacity(dropId, productIds[0], 3);
-    expect(capacity.product_id).toBe(productIds[0]);
-    expect(capacity.sold).toBe(3);
-    expect(capacity.max).toBe(10); // DEFAULT_MAX_CAPACITY
-    expect(capacity.available).toBe(7);
+  test("throws error when product is not configured in drop", async () => {
+    expect(updateProductCapacity(dropId, productIds[0], 3)).rejects.toThrow(
+      `Cannot update capacity for product ${productIds[0]} in drop ${dropId}: product not configured in drop_products table`,
+    );
   });
 
   test("increments sold count on existing entry", async () => {
@@ -191,9 +191,9 @@ describe("isProductAvailable", () => {
     expect(available).toBe(false);
   });
 
-  test("returns true when no entry exists (uses default capacity)", async () => {
+  test("returns false when no entry exists", async () => {
     const available = await isProductAvailable(dropId, productIds[0]);
-    expect(available).toBe(true); // DEFAULT_MAX_CAPACITY = 10, sold = 0
+    expect(available).toBe(false); // getProductCapacity returns available: 0 for missing entries
   });
 });
 
