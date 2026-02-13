@@ -23,5 +23,5 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v2
-    - run: bun install && bun test
+    - run: bun install && bun test src
 
