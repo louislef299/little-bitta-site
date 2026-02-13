@@ -1,6 +1,6 @@
 # Local Development Guide
 
-This document covers setting up and running the Little Bitta Granola site locally with SvelteKit and progressive enhancement.
+This document covers setting up and running the Little Bitta Granola site locally with SvelteKit and Bun.
 
 > **See also:** [Cloud Architecture](cloud-arch.md) for production deployment, [Customer-Facing Site](customer-facing.md) for frontend implementation, and [Admin Panel](admin-ui.md) for backend management.
 
@@ -10,16 +10,18 @@ This document covers setting up and running the Little Bitta Granola site locall
 
 - **SvelteKit** - SSR framework with progressive enhancement
 - **Vite** - Fast development server with HMR
-- **Netlify CLI** - Simulates Netlify deployment locally
-- **SQLite** - Local database (instead of Turso)
+- **Bun** - JavaScript runtime and package manager
+- **PostgreSQL 18** - Database (via Docker Compose)
 - **Stripe Test Mode** - Test payments without real money
 - **TypeScript** - Type-safe development
+- **Caddy** - Reverse proxy with automatic HTTPS (for production-like local testing)
 
 **Design Philosophy:**
 
 - Develop with progressive enhancement from the start
 - Test without JavaScript to ensure resilience
 - Server-render all pages for immediate content visibility
+- Use the same database (Postgres) in dev and production to avoid schema drift
 
 ## Project Structure
 
@@ -30,664 +32,327 @@ little-bitta-site/
 │   │   ├── +layout.svelte           # Root layout
 │   │   ├── +page.svelte             # Homepage
 │   │   ├── +page.server.ts          # Homepage server logic
-│   │   ├── products/
-│   │   │   └── [slug]/
-│   │   │       ├── +page.svelte     # Product detail
-│   │   │       └── +page.server.ts  # Load product data
-│   │   ├── cart/
-│   │   │   ├── +page.svelte         # Cart page
-│   │   │   └── +page.server.ts      # Cart actions (add/remove)
-│   │   ├── checkout/
-│   │   │   ├── +page.svelte         # Checkout form
-│   │   │   └── +page.server.ts      # Payment processing
-│   │   └── admin/
-│   │       ├── +page.svelte         # Admin dashboard
-│   │       └── +page.server.ts      # Admin actions
+│   │   ├── product/[slug]/          # Product detail pages
+│   │   ├── shop/                    # Shop page
+│   │   ├── order-success/           # Post-checkout confirmation
+│   │   ├── admin/                   # Admin panel
+│   │   │   └── drops/               # Drop management
+│   │   └── api/stripe/              # Stripe webhook + checkout API
 │   ├── lib/
-│   │   ├── server/              # Server-only code
-│   │   │   ├── db.ts           # Database client
-│   │   │   └── stripe.ts       # Stripe client
-│   │   └── components/         # Reusable Svelte components
-│   └── app.html                # HTML template
+│   │   ├── db/                # Database layer (Postgres via Bun SQL)
+│   │   │   ├── db.ts         # Database connection (uses DATABASE_URL)
+│   │   │   ├── product.ts    # Product queries
+│   │   │   ├── drop.ts       # Drop queries
+│   │   │   ├── order.ts      # Order queries
+│   │   │   └── drop-product.ts # Per-product capacity tracking
+│   │   ├── payments/          # Stripe integration
+│   │   │   ├── stripe.ts     # Stripe client
+│   │   │   └── verify-payment.ts # Payment verification logic
+│   │   ├── components/        # Reusable Svelte components
+│   │   ├── cart/              # Cart state management
+│   │   └── config/            # App configuration
+│   ├── hooks.server.ts        # Server hooks (dev request logging)
+│   └── app.html               # HTML template
 │
-├── static/                    # Static assets
-│   ├── images/
-│   ├── fonts/
-│   └── favicon.png
+├── config/
+│   └── init-db/
+│       ├── 01-schema.sql      # PostgreSQL schema (tables, enums, triggers)
+│       └── 02-seed.sql        # Seed data for development
 │
-├── local/                     # Local development only
-│   ├── seed.sql              # Sample product data
-│   └── local.db              # SQLite database (gitignored)
+├── tests/
+│   └── integration/
+│       └── db/                # Integration tests (require Postgres)
+│           ├── test-utils.ts  # Test helpers (connection, schema, seeds)
+│           ├── drop.test.ts
+│           ├── product.test.ts
+│           ├── order.test.ts
+│           └── drop-product.test.ts
 │
-├── .env.example              # Environment variable template
-├── .env                      # Actual secrets (gitignored)
-├── svelte.config.js          # SvelteKit configuration
-├── vite.config.js            # Vite configuration
-├── netlify.toml              # Netlify configuration
-├── package.json              # Dependencies
-└── tsconfig.json             # TypeScript configuration
+├── static/                    # Static assets (images, fonts, favicon)
+├── docs/                      # Documentation
+├── compose.yml                # Docker Compose (Postgres, Caddy, Bun)
+├── Dockerfile                 # Production container image
+├── Caddyfile                  # Caddy reverse proxy config
+├── justfile                   # Task runner recipes
+├── bunfig.toml                # Bun configuration
+├── svelte.config.js           # SvelteKit configuration
+├── vite.config.ts             # Vite configuration
+├── package.json               # Dependencies and scripts
+└── tsconfig.json              # TypeScript configuration
 ```
 
 ## Initial Setup
 
-### 1. Install Dependencies
+### 1. Prerequisites
+
+- **[Bun](https://bun.sh)** (v1.3+) - JavaScript runtime
+- **[Docker](https://docs.docker.com/get-docker/)** - For PostgreSQL
+- **[just](https://github.com/casey/just)** - Task runner (recommended)
+- **[Stripe CLI](https://docs.stripe.com/stripe-cli)** - For local webhook testing
+- **[mkcert](https://github.com/FiloSottile/mkcert)** - For local TLS certificates (optional, for production-like testing)
+
+### 2. Install Dependencies
 
 ```bash
-# Install Netlify CLI globally (optional, for deployment)
-bun install -g netlify-cli
-
-# Install project dependencies
 bun install
-
-# Key dependencies:
-# - @sveltejs/kit: SvelteKit framework
-# - @sveltejs/adapter-netlify: Netlify deployment adapter
-# - @libsql/client: Turso database client (SQLite-compatible)
-# - stripe: Stripe payment processing
-# - vite: Development server
 ```
 
-### 2. Configure TypeScript
+### 3. Configure Environment Variables
 
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "lib": ["ES2022"],
-    "moduleResolution": "bundler",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "outDir": "./dist",
-    "rootDir": "./"
-  },
-  "include": ["functions/**/*", "src/**/*"],
-  "exclude": ["node_modules", "dist", "local"]
-}
-```
-
-### 3. Configure SvelteKit
-
-```js
-// svelte.config.js
-import adapter from "@sveltejs/adapter-netlify";
-import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
-
-const config = {
-  preprocess: vitePreprocess(),
-
-  kit: {
-    adapter: adapter({
-      edge: false,
-      split: false,
-    }),
-  },
-};
-
-export default config;
-```
-
-```toml
-# netlify.toml
-[build]
-  command = "bun run build"
-  publish = "build"
-
-[build.environment]
-  NODE_VERSION = "20"
-
-[dev]
-  command = "bun run dev"
-  targetPort = 5173
-  port = 8888
-  autoLaunch = false
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/render"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-```
-
-### 4. Update package.json Scripts
-
-```json
-{
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "db:seed": "sqlite3 local/local.db < local/seed.sql",
-    "db:reset": "rm -f local/local.db && bun run db:seed",
-    "netlify:dev": "netlify dev",
-    "deploy": "netlify deploy --prod"
-  }
-}
-```
-
-### 5. TLS Certificate Setup (for HTTPS)
-
-The production-like local environment uses Caddy with HTTPS. To avoid browser security warnings, generate locally-trusted certificates using `mkcert`.
-
-**Install mkcert:**
-
-```bash
-# macOS
-brew install mkcert
-
-# Linux (requires certutil)
-sudo apt install libnss3-tools
-brew install mkcert  # or download from https://github.com/FiloSottile/mkcert/releases
-```
-
-**One-time setup (install local CA):**
-
-```bash
-# This installs the local CA in your system trust store
-# You only need to run this once per machine
-mkcert -install
-```
-
-**Generate certificates:**
-
-```bash
-# Generate certs for localhost
-just cert
-
-# This creates:
-# - certs/localhost.pem (certificate)
-# - certs/localhost-key.pem (private key)
-```
-
-After this setup, `https://localhost` will work without browser warnings in both:
-- Local development (`just prod`)
-- Docker environment (`just up`)
-
-## Environment Variables
-
-### Create .env File
+Create a `.env` file in the project root:
 
 ```bash
 # .env
-NODE_ENV=development
-
-# Database (local SQLite)
-DB_PATH=./local/local.db
-
-# Admin (simple token for development)
-ADMIN_SECRET=dev-secret-change-in-production
-
-# Stripe Test Mode (get from https://dashboard.stripe.com/test/apikeys)
-STRIPE_SECRET_KEY=sk_test_...
 PUBLIC_STRIPE_KEY=pk_test_...
+SECRET_STRIPE_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+DATABASE_URL=postgres://postgres:password@localhost:5432/little_bitta
 ```
 
-### Create .env.example Template
+Get Stripe test credentials from https://dashboard.stripe.com/test/apikeys.
+
+The `DATABASE_URL` should match the Postgres credentials in `compose.yml`.
+
+### 4. Start the Database
 
 ```bash
-# .env.example
-NODE_ENV=development
-DB_PATH=./local/local.db
-ADMIN_SECRET=your-admin-secret-here
-STRIPE_SECRET_KEY=sk_test_...
-PUBLIC_STRIPE_KEY=pk_test_...
+# Start PostgreSQL via Docker Compose
+docker compose up -d --wait db
 ```
 
-## Local Database Setup
+This starts a Postgres 18 container on port 5432, automatically initializes the schema from `config/init-db/01-schema.sql`, and seeds development data from `config/init-db/02-seed.sql`.
 
-### 1. Create Database Schema
+### 5. TLS Certificate Setup (optional)
 
-```sql
--- local/seed.sql
--- Create tables
-CREATE TABLE IF NOT EXISTS products (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  description TEXT,
-  price REAL NOT NULL,
-  image_url TEXT,
-  stock INTEGER DEFAULT 0,
-  active INTEGER DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS orders (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  customer_email TEXT NOT NULL,
-  total REAL NOT NULL,
-  status TEXT DEFAULT 'pending',
-  stripe_payment_id TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS order_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id INTEGER,
-  product_id INTEGER,
-  quantity INTEGER,
-  price REAL,
-  FOREIGN KEY(order_id) REFERENCES orders(id),
-  FOREIGN KEY(product_id) REFERENCES products(id)
-);
-
-CREATE TABLE IF NOT EXISTS admin_users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- Seed sample products
-INSERT INTO products (name, description, price, image_url, stock, active) VALUES
-  ('Peanut Butter Nutella', 'Rich and creamy blend of peanut butter and chocolate hazelnut spread', 10.00, '/images/pb-nutella.jpg', 50, 1),
-  ('Pistachio', 'Crunchy pistachios with a hint of honey', 10.00, '/images/pistachio.jpg', 50, 1),
-  ('Peanut Butter Chocolate Chip', 'Classic peanut butter with dark chocolate chips', 10.00, '/images/pb-chocolate.jpg', 50, 1),
-  ('Honey Bear', 'Sweet honey with almonds and oats', 10.00, '/images/honey-bear.jpg', 50, 1);
-
--- Create admin user (password: admin123)
--- Hash generated with: echo -n "admin123" | openssl dgst -sha256
-INSERT INTO admin_users (username, password_hash) VALUES
-  ('admin', '$2a$10$rU8E8qQs5qV5kZ9fX8LlO.YvJqKj7XqZqZqZqZqZqZqZqZqZqZqZq');
-```
-
-### 2. Initialize Database
+For production-like local HTTPS via Caddy:
 
 ```bash
-# Create local directory if it doesn't exist
-mkdir -p local
+# Install mkcert (macOS)
+brew install mkcert
 
-# Create and seed database
-bun run db:seed
+# Install the local CA (one-time)
+mkcert -install
 
-# Verify it worked
-sqlite3 local/local.db "SELECT * FROM products;"
+# Generate certificates
+just cert
 ```
 
-### 3. Database Helper Module
-
-```ts
-// src/lib/server/db.ts
-import { createClient } from "@libsql/client";
-import { dev } from "$app/environment";
-
-export const getDb = () => {
-  if (dev) {
-    // Development: Use local SQLite
-    return createClient({
-      url: `file:${process.env.DB_PATH || "./local/local.db"}`,
-    });
-  } else {
-    // Production: Use Turso
-    return createClient({
-      url: process.env.TURSO_URL!,
-      authToken: process.env.TURSO_TOKEN!,
-    });
-  }
-};
-```
-
-**Note:** Place database helpers in `src/lib/server/` to ensure they only run on the server (SvelteKit convention).
-
-## Stripe Test Mode Setup
-
-### 1. Create Stripe Account
-
-1. Go to https://dashboard.stripe.com
-2. Sign up for an account (free)
-3. Toggle to **Test mode** (top right toggle)
-
-### 2. Get Credentials
-
-**In Test mode:**
-
-- **Secret Key:** Developers → API Keys → Secret key (sk_test_...)
-- **Publishable Key:** Developers → API Keys → Publishable key (pk_test_...)
-
-Add these to your `.env` file.
-
-### 3. Test Credit Cards
-
-Use these test cards in Test mode:
-
-| Card Number         | Type       | Result  |
-| ------------------- | ---------- | ------- |
-| 4242 4242 4242 4242 | Visa       | Success |
-| 5555 5555 5555 4444 | Mastercard | Success |
-| 3782 822463 10005   | Amex       | Success |
-| 4000 0000 0000 9995 | Visa       | Decline |
-
-**CVV:** Any 3 digits
-**Expiry:** Any future date
-**Postal Code:** Any valid code
-
-### 4. Stripe Client Helper
-
-```ts
-// src/lib/server/stripe.ts
-import Stripe from "stripe";
-
-export const getStripeClient = () => {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2024-12-18.acacia",
-  });
-};
-```
+After this, `https://localhost` will work without browser warnings when using `just prod` or `just up`.
 
 ## Running Locally
 
 ### Start Development Server
 
 ```bash
-# Start Vite development server
-bun run dev
+# Start Vite dev server + Stripe webhook listener
+just dev
 
-# Server starts at: http://localhost:5173
+# Or without just:
+bun run dev
 ```
+
+The dev server starts at `http://localhost:5173` with HMR (Hot Module Replacement).
 
 **What happens:**
 
-- SvelteKit starts with HMR (Hot Module Replacement)
+- SvelteKit starts with HMR
 - Pages are server-rendered on each request
 - Changes reflect instantly (no page refresh needed)
-- All routes available immediately
+- Request timing is logged to the terminal (via `hooks.server.ts`)
 
-**Available routes:**
-
-- `http://localhost:5173/` - Homepage (SSR)
-- `http://localhost:5173/cart` - Cart page (SSR)
-- `http://localhost:5173/checkout` - Checkout (SSR)
-- `http://localhost:5173/admin` - Admin panel (SSR)
-
-### Development Workflow
-
-1. **Edit Svelte files** - Hot Module Replacement updates instantly
-2. **Edit server code** - Pages re-render on next request
-3. **View server logs** - Server actions log to terminal
-4. **Test without JS** - Disable JavaScript in browser to test resilience
-5. **Test forms** - Forms work via POST even without JavaScript
-
-### Testing Progressive Enhancement
-
-**Verify your site works without JavaScript:**
-
-1. Open browser DevTools
-2. Disable JavaScript (Chrome: DevTools > Settings > Debugger > Disable JavaScript)
-3. Reload page
-4. Test core functionality:
-   - View products ✓
-   - Add to cart (form POST) ✓
-   - View cart ✓
-   - Navigate pages ✓
-
-**With JavaScript enabled:**
-
-- Smooth page transitions
-- Optimistic UI updates
-- No full page reloads
-- Enhanced animations
-
-## Testing the Site
-
-### 1. View Homepage
+### Run in Production Mode (locally)
 
 ```bash
-open http://localhost:8888
+# Build and serve with Caddy + Postgres
+just prod
+
+# Or run the full Docker Compose stack
+just up
 ```
 
-Should see the storefront with products from seed data.
+## Database
 
-### 2. Test Admin Panel
+### Architecture
+
+Both local development and production use PostgreSQL. There is no SQLite fallback -- this eliminates schema drift between environments.
+
+- **Connection:** `src/lib/db/db.ts` connects via the `DATABASE_URL` environment variable
+- **Schema:** `config/init-db/01-schema.sql` defines all tables, enums, and constraints
+- **Seed data:** `config/init-db/02-seed.sql` populates development data
+- **Docker:** `compose.yml` runs Postgres 18 with the init scripts mounted to `/docker-entrypoint-initdb.d`
+
+### The `updated_at = DEFAULT` Pattern
+
+All `UPDATE` queries use `updated_at = DEFAULT` instead of `updated_at = CURRENT_TIMESTAMP`. This is a PostgreSQL-specific pattern that relies on the column default:
+
+```sql
+-- In 01-schema.sql:
+updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+```
+
+When an `UPDATE` sets `updated_at = DEFAULT`, Postgres re-evaluates the column default (`CURRENT_TIMESTAMP`), effectively auto-updating the timestamp. This avoids the need for triggers.
+
+Reference: https://www.morling.dev/blog/last-updated-columns-with-postgres/
+
+### Common Database Commands
 
 ```bash
-open http://localhost:8888/admin.html
+# Start Postgres
+docker compose up -d --wait db
+
+# Connect to the database via psql
+docker compose exec db psql -U postgres -d little_bitta
+
+# Reset the database (destroy and recreate)
+docker compose down -v && docker compose up -d --wait db
+
+# View container status
+docker compose ps
 ```
 
-**Login:**
+## Testing
 
-- Username: `admin`
-- Password: `admin123`
+The project uses [Bun's built-in test runner](https://bun.sh/docs/cli/test) with two tiers of tests:
 
-### 3. Test Checkout Flow
+### Unit Tests
 
-1. Add products to cart
-2. Click checkout
-3. Use test card: `4111 1111 1111 1111`
-4. Check orders in admin panel
-
-### 4. Test API Directly
+Unit tests live in `src/` alongside the code they test. They do not require Docker or Postgres.
 
 ```bash
-# Get products
-curl http://localhost:8888/.netlify/functions/products
+# Run unit tests only
+just test
 
-# Admin login
-curl -X POST http://localhost:8888/.netlify/functions/admin-login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-
-# Get admin products (with token)
-curl http://localhost:8888/.netlify/functions/admin-products \
-  -H "Authorization: Bearer dev-secret-change-in-production"
+# Or directly:
+bun test
 ```
+
+`bunfig.toml` sets `root = "src"` so bare `bun test` only discovers test files under `src/`.
+
+### Integration Tests
+
+Integration tests live in `tests/integration/` and run against a real Postgres instance. They verify the full database layer including PostgreSQL-specific behavior.
+
+```bash
+# Run integration tests (auto-starts Postgres)
+just test-integration
+
+# Run all tests (unit + integration)
+just test-all
+```
+
+### Test Architecture
+
+Integration tests use Bun's `mock.module()` to inject a test database connection, then dynamically import the module under test:
+
+```ts
+const sql = await getTestSql(); // Connect to test DB
+mock.module("../../../src/lib/db/db", () => ({ sql })); // Mock the db module
+const { myFunction } = await import("../../../src/lib/db/my-module");
+```
+
+Each test file:
+
+- Creates a `little_bitta_test` database (separate from `little_bitta`)
+- Sets up the full schema in `beforeAll`
+- Truncates all tables in `beforeEach` for isolation
+- Closes the connection in `afterAll`
+
+## Stripe Test Mode
+
+### Setup
+
+1. Create a [Stripe account](https://dashboard.stripe.com) (free)
+2. Toggle to **Test mode**
+3. Get API keys from Developers > API Keys
+4. Add keys to `.env`
+
+### Local Webhook Testing
+
+```bash
+# Login to Stripe CLI (one-time)
+stripe login
+
+# Start webhook forwarding (included in `just dev`)
+just webhook
+```
+
+### Test Credit Cards
+
+| Card Number         | Result  |
+| ------------------- | ------- |
+| 4242 4242 4242 4242 | Success |
+| 4000 0000 0000 9995 | Decline |
+
+**CVV:** Any 3 digits | **Expiry:** Any future date | **Postal Code:** Any valid code
 
 ## Troubleshooting
 
-### Functions Not Loading
+### Database Connection Errors
 
-**Error:** `Function not found`
-
-**Fix:**
+**Error:** `PostgresError: Connection refused` or `Connection closed`
 
 ```bash
-# Check netlify.toml has correct functions path
-cat netlify.toml | grep functions
+# Ensure Postgres is running
+docker compose up -d --wait db
 
-# Ensure TypeScript is installed
-bun install -D typescript
+# Check container health
+docker compose ps
 
-# Restart dev server
-netlify dev
+# View Postgres logs
+docker compose logs db
 ```
 
-### Database Errors
+### Integration Tests Fail
 
-**Error:** `SQLITE_CANTOPEN: unable to open database file`
-
-**Fix:**
+**Error:** Tests fail with Postgres connection errors
 
 ```bash
-# Ensure local/ directory exists
-mkdir -p local
+# Ensure Docker is running and Postgres is healthy
+docker compose up -d --wait db
 
-# Recreate database
-bun run db:reset
-
-# Check file exists
-ls -la local/local.db
+# Run integration tests explicitly
+just test-integration
 ```
+
+Note: Bare `bun test` only runs unit tests (due to `bunfig.toml` root setting). Integration tests require `just test-integration` or `just test-all`.
 
 ### Stripe Payment Fails
 
-**Error:** `Payment failed`
-
-**Fix:**
-
 1. Verify you're using **Test mode** credentials in `.env`
-2. Check credentials are from Test mode (not Live mode)
+2. Ensure the Stripe CLI webhook listener is running (`just webhook` or included in `just dev`)
 3. Use test card numbers listed above
-4. Check Stripe Dashboard for errors (https://dashboard.stripe.com/test/logs)
-
-### TypeScript Compilation Errors
-
-**Error:** `Cannot find module...`
-
-**Fix:**
-
-```bash
-# Install missing types
-bun install -D @types/node @netlify/functions
-
-# Verify tsconfig.json exists
-cat tsconfig.json
-
-# Clear cache and restart
-rm -rf .netlify
-netlify dev
-```
+4. Check Stripe Dashboard for errors: https://dashboard.stripe.com/test/logs
 
 ### Port Already in Use
 
-**Error:** `Port 8888 is already in use`
-
-**Fix:**
-
 ```bash
-# Find and kill process
-lsof -ti:8888 | xargs kill -9
+# Find and kill process on port 5173 (Vite)
+lsof -ti:5173 | xargs kill -9
 
-# Or use different port
-netlify dev --port 9999
+# Find and kill process on port 5432 (Postgres)
+lsof -ti:5432 | xargs kill -9
 ```
 
-## Development Tips
+## Quick Reference
 
-### 1. Database Inspection
-
-```bash
-# Open SQLite shell
-sqlite3 local/local.db
-
-# View tables
-.tables
-
-# Query products
-SELECT * FROM products;
-
-# Check orders
-SELECT * FROM orders;
-
-# Exit
-.quit
-```
-
-### 2. Reset Database
-
-```bash
-# Delete and recreate
-bun run db:reset
-
-# Or manually
-rm local/local.db
-sqlite3 local/local.db < local/seed.sql
-```
-
-### 3. Function Logs
-
-All `console.log()` in functions appear in terminal:
-
-```ts
-// functions/products.ts
-export default async (req: Request) => {
-  console.log("Products requested"); // Shows in terminal
-  // ...
-};
-```
-
-### 4. Test with cURL
-
-```bash
-# Create product (admin)
-curl -X POST http://localhost:8888/.netlify/functions/admin-products \
-  -H "Authorization: Bearer dev-secret-change-in-production" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Granola",
-    "description": "Testing",
-    "price": 12.50,
-    "stock": 10,
-    "image_url": "/images/test.jpg"
-  }'
-```
-
-### 5. Environment Variables
-
-Netlify CLI automatically loads `.env` file. No need for `dotenv` package.
-
-```ts
-// Access in functions
-const apiKey = process.env.STRIPE_SECRET_KEY;
-```
-
-## Git Configuration
-
-### .gitignore
-
-```gitignore
-# Dependencies
-node_modules/
-
-# Environment
-.env
-
-# Local database
-local/local.db
-
-# Netlify
-.netlify/
-
-# Build output
-dist/
-.cache/
-
-# OS files
-.DS_Store
-Thumbs.db
-```
-
-## Next Steps
-
-Once local development is working:
-
-1. **Create functions** - Start with `products.ts` and `admin-login.ts`
-2. **Build frontend** - Create `index.html` with Alpine.js
-3. **Test end-to-end** - Full checkout flow locally
-4. **Deploy to Netlify** - `netlify deploy --prod`
-5. **Switch to Turso** - Replace local SQLite with production Turso
-6. **Use Stripe Live Mode** - Switch from test mode to live payments
+| Command                          | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `just dev`                       | Start dev server + Stripe webhook listener |
+| `just prod`                      | Build and run production locally           |
+| `just up`                        | Run full stack in Docker                   |
+| `just clean`                     | Stop servers and clean up                  |
+| `just test`                      | Run unit tests (no Docker needed)          |
+| `just test-integration`          | Run integration tests (starts Postgres)    |
+| `just test-all`                  | Run all tests (starts Postgres)            |
+| `just cert`                      | Generate TLS certificates                  |
+| `just webhook`                   | Start Stripe webhook forwarding            |
+| `docker compose up -d --wait db` | Start Postgres                             |
+| `docker compose down -v`         | Stop and reset Postgres                    |
+| `docker compose logs db`         | View Postgres logs                         |
 
 ## Related Documentation
 
 - [Cloud Architecture](cloud-arch.md) - Production deployment and infrastructure
 - [Customer-Facing Site](customer-facing.md) - Frontend implementation details
 - [Admin Panel](admin-ui.md) - Backend management interface
-
-## Quick Reference
-
-| Command                  | Purpose                          |
-| ------------------------ | -------------------------------- |
-| `mkcert -install`        | Install local CA (one-time)      |
-| `just cert`              | Generate TLS certificates        |
-| `just prod`              | Run production build locally     |
-| `just up`                | Run in Docker                    |
-| `just clean`             | Stop servers and clean up        |
-| `bun run dev`            | Start local dev server           |
-| `bun run db:seed`        | Initialize local database        |
-| `bun run db:reset`       | Reset database to seed data      |
-| `sqlite3 local/local.db` | Open database shell              |
-| `netlify deploy`         | Deploy to preview                |
-| `netlify deploy --prod`  | Deploy to production             |
-
----
-
-**Ready to start building!** Begin with setting up the basic files, then create your first function and HTML page.
