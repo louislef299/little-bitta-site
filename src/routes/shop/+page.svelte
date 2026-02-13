@@ -9,13 +9,13 @@
 
     const { drop, products, productCapacities } = $derived(data);
 
-    // Helper to get capacity for a product, with default fallback
+    // Helper to get capacity for a product, with zero capacity fallback
     function getCapacity(productId: number): ProductCapacity {
         return productCapacities[productId] ?? {
             product_id: productId,
-            max: 10,
+            max: 0,
             sold: 0,
-            available: 10
+            available: 0
         };
     }
 
