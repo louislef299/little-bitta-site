@@ -59,6 +59,30 @@ export const POST: RequestHandler = async ({ request }) => {
       break;
     }
 
+    case "checkout.session.async_payment_failed": {
+      // Payment failed after asynchronous processing
+      const session = event.data.object;
+      console.log(
+        `[StripeWebhook] Async payment failed: ${session.id}`,
+        `- Payment status: ${session.payment_status}`,
+      );
+      // TODO: Send failure notification email to customer
+      // TODO: Mark any pending order as failed in database
+      break;
+    }
+
+    case "charge.failed": {
+      const charge = event.data.object;
+      console.log(
+        `[StripeWebhook] Charge failed: ${charge.id}`,
+        `- Failure code: ${charge.failure_code}`,
+        `- Failure message: ${charge.failure_message}`,
+      );
+      // Note: The checkout session will handle the failure via other events
+      // This is logged for debugging and monitoring purposes
+      break;
+    }
+
     case "checkout.session.expired": {
       const session = event.data.object;
       console.log(`[StripeWebhook] Checkout session expired: ${session.id}`);
