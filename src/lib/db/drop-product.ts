@@ -98,20 +98,20 @@ export async function updateProductCapacity(
   `;
 
   if (existing.length === 0) {
-    // Insert new row with default capacity
-    await sql`
-      INSERT INTO drop_products (drop_id, product_id, max_capacity, sold_count)
-      VALUES (${dropId}, ${productId}, ${DEFAULT_MAX_CAPACITY}, ${quantity})
-    `;
-  } else {
-    // Update existing row
-    await sql`
-      UPDATE drop_products
-      SET sold_count = sold_count + ${quantity},
-          updated_at = CURRENT_TIMESTAMP
-      WHERE drop_id = ${dropId} AND product_id = ${productId}
-    `;
+    // Product not configured for this drop - this is an error
+    throw new Error(
+      `Cannot update capacity for product ${productId} in drop ${dropId}: ` +
+        `product not configured in drop_products table`,
+    );
   }
+
+  // Update existing row
+  await sql`
+    UPDATE drop_products
+    SET sold_count = sold_count + ${quantity},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE drop_id = ${dropId} AND product_id = ${productId}
+  `;
 
   return getProductCapacity(dropId, productId);
 }
