@@ -76,7 +76,8 @@
     <div class="actions">
       <a href="/cart" class="button primary">Return to Cart</a>
       <p class="contact-info">
-        Need help? Contact us at <a href="mailto:contact@example.com">contact@example.com</a>
+        <!-- TODO: Update email with little bitta email -->
+        Need help? Contact us at <a href="mailto:llefebvre@hammer-anvil.com">llefebvre@hammer-anvil.com</a>
       </p>
     </div>
   </div>
