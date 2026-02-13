@@ -13,29 +13,31 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 -- Drops table (limited release periods)
+CREATE TYPE drop_status AS ENUM ('upcoming', 'active', 'sold_out', 'ended');
 CREATE TABLE IF NOT EXISTS drops (
   id SERIAL PRIMARY KEY,
   display_name VARCHAR(100) NOT NULL,
   year INT NOT NULL,
-  status ENUM('upcoming', 'active', 'sold_out', 'ended') NOT NULL DEFAULT 'upcoming',
+  status drop_status NOT NULL DEFAULT 'upcoming',
   max_capacity INT NOT NULL DEFAULT 50,
   sold_count INT NOT NULL DEFAULT 0,
-  start_date DATETIME,
-  end_date DATETIME,
-  prep_date DATETIME,
+  start_date DATE,
+  end_date DATE,
+  prep_date DATE,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Orders table (completed purchases)
+CREATE TYPE order_status AS ENUM('pending', 'confirmed', 'cancelled', 'refunded');
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   stripe_session_id VARCHAR(255) UNIQUE,
   stripe_payment_intent VARCHAR(255),
   customer_email VARCHAR(255),
   total_amount DECIMAL(10, 2) NOT NULL,
-  status ENUM('pending', 'confirmed', 'cancelled', 'refunded') NOT NULL DEFAULT 'pending',
+  status order_status NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
