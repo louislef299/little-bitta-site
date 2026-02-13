@@ -109,7 +109,7 @@ export async function updateProductCapacity(
   await sql`
     UPDATE drop_products
     SET sold_count = sold_count + ${quantity},
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = DEFAULT
     WHERE drop_id = ${dropId} AND product_id = ${productId}
   `;
 
