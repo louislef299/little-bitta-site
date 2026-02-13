@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getTotalForItem } from '$lib/cart/cart.svelte'
-    import type { ProductCapacity } from '$lib/server/db/drop-product';
+    import type { ProductCapacity } from '$lib/db/drop-product';
 
     type Props = {
         pcap: ProductCapacity;

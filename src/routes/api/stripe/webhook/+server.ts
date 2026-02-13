@@ -2,14 +2,14 @@
 
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getStripe } from "$lib/server/stripe";
+import { getStripe } from "$lib/payments/stripe";
 import { env } from "$env/dynamic/private";
 import {
   getCurrentDrop,
   getDropCapacity,
   updateDropStatus,
-} from "$lib/server/db/drop";
-import { updateProductCapacity } from "$lib/server/db/drop-product";
+} from "$lib/db/drop";
+import { updateProductCapacity } from "$lib/db/drop-product";
 
 export const POST: RequestHandler = async ({ request }) => {
   const stripe = getStripe();
@@ -85,7 +85,7 @@ async function handleSuccessfulPayment(
     });
 
     const totalQuantity = lineItems.data.reduce(
-      (sum, item) => sum + (item.quantity || 0),
+      (sum: number, item) => sum + (item.quantity || 0),
       0,
     );
 

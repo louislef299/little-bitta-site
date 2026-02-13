@@ -1,9 +1,9 @@
 import { dev } from "$app/environment";
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getStripe } from "$lib/server/stripe";
-import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
-import { getProductCapacity } from "$lib/server/db/drop-product";
+import { getStripe } from "$lib/payments/stripe";
+import { getCurrentDrop, getDropCapacity } from "$lib/db/drop";
+import { getProductCapacity } from "$lib/db/drop-product";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   try {

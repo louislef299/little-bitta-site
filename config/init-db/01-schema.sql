@@ -1,6 +1,6 @@
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   slug VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -8,13 +8,13 @@ CREATE TABLE IF NOT EXISTS products (
   price DECIMAL(10, 2) NOT NULL,
   image_url VARCHAR(500),
   product_type VARCHAR(50) NOT NULL DEFAULT 'granola',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Drops table (limited release periods)
 CREATE TABLE IF NOT EXISTS drops (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   display_name VARCHAR(100) NOT NULL,
   year INT NOT NULL,
   status ENUM('upcoming', 'active', 'sold_out', 'ended') NOT NULL DEFAULT 'upcoming',
@@ -25,24 +25,24 @@ CREATE TABLE IF NOT EXISTS drops (
   prep_date DATETIME,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Orders table (completed purchases)
 CREATE TABLE IF NOT EXISTS orders (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   stripe_session_id VARCHAR(255) UNIQUE,
   stripe_payment_intent VARCHAR(255),
   customer_email VARCHAR(255),
   total_amount DECIMAL(10, 2) NOT NULL,
   status ENUM('pending', 'confirmed', 'cancelled', 'refunded') NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Order items table (line items in an order)
 CREATE TABLE IF NOT EXISTS order_items (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   order_id INT NOT NULL,
   product_id INT NOT NULL,
   drop_id INT NOT NULL,
