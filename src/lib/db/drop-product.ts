@@ -33,12 +33,12 @@ export async function getProductCapacity(
   `;
 
   if (rows.length === 0) {
-    // Return default capacity if no entry exists
+    // Return zero capacity if no entry exists - product not configured for this drop
     return {
       product_id: productId,
-      max: DEFAULT_MAX_CAPACITY,
+      max: 0,
       sold: 0,
-      available: DEFAULT_MAX_CAPACITY,
+      available: 0,
     };
   }
 
