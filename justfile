@@ -11,6 +11,7 @@ alias dev := run
 alias serve := run
 # Run the vite dev server using bun runtime
 run:
+    docker compose up -d db
     {{bun}} -b run dev
 
 # Build the Svelte project using vite
