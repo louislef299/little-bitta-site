@@ -2,9 +2,9 @@
     import {
         addToCart, getTotalForItem
     } from '$lib/cart/cart.svelte';
-    import type { Drop } from '$lib/server/db/drop';
-    import type { ProductCapacity } from '$lib/server/db/drop-product';
-    import type { Product } from '$lib/server/db/product';
+    import type { Drop } from '$lib/db/drop';
+    import type { ProductCapacity } from '$lib/db/drop-product';
+    import type { Product } from '$lib/db/product';
 
     type Props = {
 		product: Product

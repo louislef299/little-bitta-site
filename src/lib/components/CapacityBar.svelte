@@ -1,6 +1,6 @@
 <script lang="ts">
     import { cart } from '$lib/cart/cart.svelte'
-    import type { DropCapacity } from '$lib/server/db/drop';
+    import type { DropCapacity } from '$lib/db/drop';
 
     type Props = {
         capacity: DropCapacity;

@@ -1,4 +1,4 @@
-import { getStripe } from "$lib/server/stripe";
+import { getStripe } from "$lib/payments/stripe";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['line_items', 'payment_intent']
+      expand: ["line_items", "payment_intent"],
     });
 
     // Verify payment was successful

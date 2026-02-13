@@ -2,7 +2,7 @@
     import { browser } from '$app/environment';
     import { loadStripeInstance } from '$lib/payments/stripe-sdk.svelte';
     import type { PageProps } from './$types';
-    import type { ProductCapacity } from '$lib/server/db/drop-product';
+    import type { ProductCapacity } from '$lib/db/drop-product';
     import ShopProduct from '$lib/components/ShopProduct.svelte';
 
 	let { data }: PageProps = $props();

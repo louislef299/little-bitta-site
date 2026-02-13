@@ -1,11 +1,11 @@
 import { dev } from "$app/environment";
 import { error, fail } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
-import { getAllDrops, createDrop, updateDropStatus } from "$lib/server/db/drop";
-import type { DropStatus } from "$lib/server/db/drop";
-import { getAllProducts } from "$lib/server/db/product";
-import { setProductCapacity } from "$lib/server/db/drop-product";
-import { sql } from "$lib/server/db/db";
+import { getAllDrops, createDrop, updateDropStatus } from "$lib/db/drop";
+import type { DropStatus } from "$lib/db/drop";
+import { getAllProducts } from "$lib/db/product";
+import { setProductCapacity } from "$lib/db/drop-product";
+import { sql } from "$lib/db/db";
 
 export const load: PageServerLoad = async () => {
   if (!dev) {

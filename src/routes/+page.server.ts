@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getCurrentDrop, getDropCapacity } from "$lib/server/db/drop";
+import { getCurrentDrop, getDropCapacity } from "$lib/db/drop";
 
 export const load: PageServerLoad = async () => {
   const drop = await getCurrentDrop();

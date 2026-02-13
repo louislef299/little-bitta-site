@@ -1,6 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { dev } from "$app/environment";
-import { initDevDb } from "$lib/server/db/db";
+import { initDevDb } from "$lib/db/db";
 
 // Initialize dev database with schema and seed data
 await initDevDb();

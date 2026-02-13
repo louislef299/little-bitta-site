@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { Product } from '$lib/server/db/product';
-    import type { ProductCapacity } from '$lib/server/db/drop-product';
+    import type { Product } from '$lib/db/product';
+    import type { ProductCapacity } from '$lib/db/drop-product';
     import { getTotalForItem } from '$lib/cart/cart.svelte';
     import AddToCart from '$lib/components/AddToCart.svelte';
-    import type { Drop } from '$lib/server/db/drop';
+    import type { Drop } from '$lib/db/drop';
 
     type Props = {
 		product: Product;

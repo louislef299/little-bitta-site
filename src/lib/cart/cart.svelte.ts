@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import type { Drop } from "$lib/server/db/drop";
+import type { Drop } from "$lib/db/drop";
 
 // Cart schema version - increment when OrderItem or Drop types change
 const CART_SCHEMA_VERSION = "1.0.0";

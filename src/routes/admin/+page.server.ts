@@ -1,9 +1,9 @@
 import { dev } from "$app/environment";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getAllProducts } from "$lib/server/db/product";
-import { getAllDrops, getDropCapacity } from "$lib/server/db/drop";
-import { sql } from "$lib/server/db/db";
+import { getAllProducts } from "$lib/db/product";
+import { getAllDrops, getDropCapacity } from "$lib/db/drop";
+import { sql } from "$lib/db/db";
 
 export const load: PageServerLoad = async () => {
   // Only allow access in dev mode

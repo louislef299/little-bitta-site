@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Trash2 } from '@lucide/svelte';
 	import { getTotalForItem, removeFromCart, updateQuantity } from '$lib/cart/cart.svelte'
-    import type { Drop } from '$lib/server/db/drop';
+    import type { Drop } from '$lib/db/drop';
 
 	type Props = {
 		id: number;
