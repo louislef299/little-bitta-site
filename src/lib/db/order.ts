@@ -93,7 +93,7 @@ export async function updateOrderStatus(
   id: number,
   status: OrderStatus,
 ): Promise<void> {
-  await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
+  await sql`UPDATE orders SET status = ${status}, updated_at = DEFAULT WHERE id = ${id}`;
 }
 
 // Confirm order by Stripe session ID (update status and optionally add payment intent)
@@ -103,12 +103,12 @@ export async function confirmOrder(
 ): Promise<void> {
   if (paymentIntent) {
     await sql`
-      UPDATE orders SET status = 'confirmed', stripe_payment_intent = ${paymentIntent}
+      UPDATE orders SET status = 'confirmed', stripe_payment_intent = ${paymentIntent}, updated_at = DEFAULT
       WHERE stripe_session_id = ${sessionId}
     `;
   } else {
     await sql`
-      UPDATE orders SET status = 'confirmed'
+      UPDATE orders SET status = 'confirmed', updated_at = DEFAULT
       WHERE stripe_session_id = ${sessionId}
     `;
   }
@@ -120,7 +120,7 @@ export async function updateOrderStripeSession(
   sessionId: string,
 ): Promise<void> {
   await sql`
-    UPDATE orders SET stripe_session_id = ${sessionId}
+    UPDATE orders SET stripe_session_id = ${sessionId}, updated_at = DEFAULT
     WHERE id = ${orderId}
   `;
 }

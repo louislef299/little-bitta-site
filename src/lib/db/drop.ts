@@ -1,6 +1,11 @@
 import { sql } from "./db";
 
-export type DropStatus = "upcoming" | "active" | "sold_out" | "in_the_oven" | "ended";
+export type DropStatus =
+  | "upcoming"
+  | "active"
+  | "sold_out"
+  | "in_the_oven"
+  | "ended";
 
 export interface Drop {
   id: number;
@@ -131,5 +136,5 @@ export async function updateDropStatus(
   id: number,
   status: DropStatus,
 ): Promise<void> {
-  await sql`UPDATE drops SET status = ${status} WHERE id = ${id}`;
+  await sql`UPDATE drops SET status = ${status}, updated_at = DEFAULT WHERE id = ${id}`;
 }
