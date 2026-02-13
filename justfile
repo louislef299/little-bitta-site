@@ -62,9 +62,9 @@ test:
 # Run integration tests against Postgres (requires Docker)
 test-integration:
     docker compose up -d --wait db
-    {{bun}} test tests/integration
+    {{bun}} test ./tests/integration
 
 # Run all tests (unit + integration)
 test-all:
     docker compose up -d --wait db
-    {{bun}} test
+    {{bun}} test ./src ./tests/integration
