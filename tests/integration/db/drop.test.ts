@@ -264,9 +264,9 @@ describe("getDropCapacity", () => {
 
     const capacity = await getDropCapacity(dropId);
     expect(capacity).not.toBeNull();
-    expect(capacity!.max).toBe(40); // 25 + 15
-    expect(capacity!.current).toBe(15); // 10 + 5
-    expect(capacity!.available).toBe(25); // 40 - 15
+    expect(Number(capacity!.max)).toBe(40); // 25 + 15
+    expect(Number(capacity!.current)).toBe(15); // 10 + 5
+    expect(Number(capacity!.available)).toBe(25); // 40 - 15
     expect(capacity!.drop.id).toBe(dropId);
   });
 
@@ -280,9 +280,9 @@ describe("getDropCapacity", () => {
 
     const capacity = await getDropCapacity(dropId);
     expect(capacity).not.toBeNull();
-    expect(capacity!.max).toBe(0);
-    expect(capacity!.current).toBe(0);
-    expect(capacity!.available).toBe(0);
+    expect(Number(capacity!.max)).toBe(0);
+    expect(Number(capacity!.current)).toBe(0);
+    expect(Number(capacity!.available)).toBe(0);
   });
 });
 
