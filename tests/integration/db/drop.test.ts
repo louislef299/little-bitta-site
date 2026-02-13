@@ -264,9 +264,9 @@ describe("getDropCapacity", () => {
 
     const capacity = await getDropCapacity(dropId);
     expect(capacity).not.toBeNull();
-    expect(Number(capacity!.max)).toBe(40); // 25 + 15
-    expect(Number(capacity!.current)).toBe(15); // 10 + 5
-    expect(Number(capacity!.available)).toBe(25); // 40 - 15
+    expect(capacity!.max).toBe(40); // 25 + 15
+    expect(capacity!.current).toBe(15); // 10 + 5
+    expect(capacity!.available).toBe(25); // 40 - 15
     expect(capacity!.drop.id).toBe(dropId);
   });
 
@@ -280,9 +280,21 @@ describe("getDropCapacity", () => {
 
     const capacity = await getDropCapacity(dropId);
     expect(capacity).not.toBeNull();
-    expect(Number(capacity!.max)).toBe(0);
-    expect(Number(capacity!.current)).toBe(0);
-    expect(Number(capacity!.available)).toBe(0);
+    expect(capacity!.max).toBe(0);
+    expect(capacity!.current).toBe(0);
+    expect(capacity!.available).toBe(0);
+  });
+
+  test("returns numbers, not strings, for aggregate values", async () => {
+    await seedProducts(sql);
+    const dropId = await insertDrop({ display_name: "TypeCheck", year: 2026 });
+    await sql`INSERT INTO drop_products (drop_id, product_id, max_capacity, sold_count) VALUES (${dropId}, 1, 10, 3)`;
+
+    const capacity = await getDropCapacity(dropId);
+    expect(capacity).not.toBeNull();
+    expect(typeof capacity!.max).toBe("number");
+    expect(typeof capacity!.current).toBe("number");
+    expect(typeof capacity!.available).toBe("number");
   });
 });
 

@@ -98,9 +98,9 @@ export async function getDropCapacity(
 
   return {
     drop,
-    current: total_sold,
-    max: total_max,
-    available: total_max - total_sold,
+    current: Number(total_sold),
+    max: Number(total_max),
+    available: Number(total_max) - Number(total_sold),
   };
 }
 
