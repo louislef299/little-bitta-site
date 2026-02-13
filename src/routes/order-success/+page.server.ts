@@ -1,4 +1,5 @@
 import { getStripe } from "$lib/payments/stripe";
+import { verifyCheckoutSession } from "$lib/payments/verify-payment";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -16,17 +17,10 @@ export const load: PageServerLoad = async ({ url }) => {
       expand: ["line_items", "payment_intent"],
     });
 
-    // Verify payment was successful
-    if (session.payment_status !== "paid") {
-      return { success: false, error: "Payment not completed" };
-    }
+    // Use the verification utility to check payment status
+    const result = verifyCheckoutSession(session);
 
-    return {
-      orderTotal: session.amount_total,
-      items: session.line_items?.data,
-      paymentStatus: session.payment_status,
-      customerEmail: session.customer_details?.email,
-    };
+    return result;
   } catch (err) {
     console.error("[OrderSuccess] Failed to verify payment:", err);
     return {
