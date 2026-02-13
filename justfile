@@ -54,3 +54,17 @@ clean:
     @echo "stopping bun process..."
     -test -f bun.pid && kill $(cat bun.pid) 2>/dev/null || true
     -rm -f bun.log caddy.log bun.pid
+
+# Run unit tests only (no Docker required)
+test:
+    {{bun}} test
+
+# Run integration tests against Postgres (requires Docker)
+test-integration:
+    docker compose up -d --wait db
+    {{bun}} test tests/integration
+
+# Run all tests (unit + integration)
+test-all:
+    docker compose up -d --wait db
+    {{bun}} test src tests/integration
