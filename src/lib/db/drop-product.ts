@@ -148,7 +148,7 @@ export async function setProductCapacity(
       UPDATE drop_products
       SET max_capacity = ${maxCapacity},
           sold_count = ${soldCount},
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = DEFAULT
       WHERE drop_id = ${dropId} AND product_id = ${productId}
     `;
   }
