@@ -57,13 +57,12 @@ export async function getDropsByStatus(status: DropStatus): Promise<Drop[]> {
 
 // Get the current drop based on date range
 export async function getCurrentDrop(): Promise<Drop | null> {
-  const now = new Date().toISOString();
   const rows = await sql`
     SELECT id, display_name, year, status,
       start_date, end_date, prep_date, description, created_at, updated_at
     FROM drops
-    WHERE start_date <= ${now}
-      AND end_date > ${now}
+    WHERE start_date <= CURRENT_DATE
+      AND end_date > CURRENT_DATE
       AND status != 'sold_out'
       AND status != 'ended'
     LIMIT 1
