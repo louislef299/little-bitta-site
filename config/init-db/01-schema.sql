@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 -- Drops table (limited release periods)
-CREATE TYPE drop_status AS ENUM ('upcoming', 'active', 'sold_out', 'ended');
+CREATE TYPE drop_status AS ENUM ('upcoming', 'active', 'sold_out', 'in_the_oven', 'ended');
 CREATE TABLE IF NOT EXISTS drops (
   id SERIAL PRIMARY KEY,
   display_name VARCHAR(100) NOT NULL,
@@ -59,3 +59,19 @@ CREATE TABLE IF NOT EXISTS order_items (
 -- Indexes for capacity queries
 CREATE INDEX idx_order_items_drop ON order_items(drop_id);
 CREATE INDEX idx_orders_status ON orders(status);
+
+-- Drop products table (per-product capacity tracking within a drop)
+CREATE TABLE IF NOT EXISTS drop_products (
+  id SERIAL PRIMARY KEY,
+  drop_id INT NOT NULL,
+  product_id INT NOT NULL,
+  max_capacity INT NOT NULL DEFAULT 10,
+  sold_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (drop_id) REFERENCES drops(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+  UNIQUE(drop_id, product_id)
+);
+
+CREATE INDEX idx_drop_products_drop ON drop_products(drop_id);
