@@ -42,10 +42,11 @@ export async function createOrder(input: CreateOrderInput): Promise<number> {
     INSERT INTO orders (stripe_session_id, customer_email, total_amount, status)
     VALUES (${input.stripe_session_id ?? null}, ${input.customer_email ?? null},
             ${input.total_amount}, 'pending')
+    RETURNING id
   `;
 
   // Get the inserted order ID
-  const orderId = Number(orderResult.lastInsertRowid);
+  const orderId = Number((orderResult[0] as { id: number }).id);
 
   // Insert order items
   for (const item of input.items) {
