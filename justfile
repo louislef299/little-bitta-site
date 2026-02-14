@@ -50,11 +50,14 @@ up:
 # Clean local development dependencies
 clean:
     {{bun}} clean
-    docker compose down -v
+    docker compose down
     -caddy stop
     @echo "stopping bun process..."
     -test -f bun.pid && kill $(cat bun.pid) 2>/dev/null || true
     -rm -f bun.log caddy.log bun.pid
+
+deepclean: clean
+    docker volume prune && docker system prune
 
 # Run unit tests only (no Docker required)
 test:
