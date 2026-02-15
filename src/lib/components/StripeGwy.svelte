@@ -17,10 +17,11 @@
   import { isDark } from '$lib/toggle.svelte';
   import { browser } from '$app/environment';
 
+  let { stripeTotal = $bindable("") }: { stripeTotal?: string } = $props();
+
   let actions: LoadActionsSuccess | null = null;
   let checkout: StripeCheckout | null = null;
   let errorMessage = $state('');
-  let stripeTotal: string = $state("");
   let email: string = $state("");
   let paymentStatus: string = $state("Payment Method Loading");
   let buttonStatus: string = $state("Pay Now");
@@ -135,7 +136,6 @@
       const paymentElement = checkout.createPaymentElement({
         layout: "tabs",
         // https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
-        // todo: https://docs.stripe.com/payments/paypal
         paymentMethodOrder: [
           'apple_pay', 'google_pay', 'amazon_pay',
           'card', 'cashapp', 'klarna',
@@ -273,44 +273,28 @@
   }
 </script>
 
-<div class="stripe-checkout">
-  <div class="total">
-    <div id="calculated-total">
-      {#if stripeTotal !== ""}
-        <h4>Total: {stripeTotal}</h4>
-      {:else}
-        <h4>Calculating...</h4>
-      {/if}
-    </div>
-    {#if errorMessage}
-      <div id="payment-message">{errorMessage}</div>
-    {/if}
-  </div>
+{#if errorMessage}
+  <div class="payment-message">{errorMessage}</div>
+{/if}
 
-  <form id="payment-form">
-    <!--Stripe.js injects the Elements-->
-    <div id="payment-method">{paymentStatus}</div>
-    <div id="payment-element"></div>
-    <div id="email-element"></div>
-    <div id="billing-element"></div>
+<form id="payment-form">
+  <!--Stripe.js injects the Elements-->
+  <div id="payment-method">{paymentStatus}</div>
+  <div id="payment-element"></div>
+  <div id="email-element"></div>
+  <div id="billing-element"></div>
 
-    <!-- the Pay Now button -->
-    <button id="submit" onclick={handlePayment} disabled={buttonDisabled}>
-      <div class="spinner hidden" id="spinner"></div>
-      <span id="button-text">{buttonStatus}</span>
-    </button>
-  </form>
-</div>
+  <!-- the Pay Now button -->
+  <button id="submit" onclick={handlePayment} disabled={buttonDisabled}>
+    <div class="spinner hidden" id="spinner"></div>
+    <span id="button-text">{buttonStatus}</span>
+  </button>
+</form>
 
 <style>
-  .stripe-checkout {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  #payment-form {
-    margin-left: auto;
+  .payment-message {
+    color: #dc2626;
+    margin-bottom: 1rem;
   }
 
   #payment-method {
@@ -330,15 +314,4 @@
     cursor: not-allowed;
     opacity: 0.6;
   }
-
-  #calculated-total {
-		font-size: 1.5rem;
-		font-weight: 600;
-    flex: 1;
-		position: sticky;
-		top: 5rem;
-		z-index: 10;
-		background-color: var(--bg-color);
-		padding: 0.5rem 0;
-	}
 </style>
