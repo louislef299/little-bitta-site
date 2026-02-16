@@ -13,6 +13,8 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY }}
       SECRET_STRIPE_KEY: ${{ secrets.SECRET_STRIPE_KEY }}
+      PUBLIC_PAYPAL_CLIENT_ID: ${{ secrets.PUBLIC_PAYPAL_CLIENT_ID }}
+      SECRET_PAYPAL_CLIENT_ID: ${{ secrets.SECRET_PAYPAL_CLIENT_ID }}
     steps:
     - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v2
