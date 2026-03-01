@@ -8,6 +8,8 @@
     we have a Little Bitta something just for you. Here's another edit!
   </p>
 
+  <p>I love working from Dogwood!</p>
+
   <p>
     With everything made locally, and by the pro herself, you can comfortably
     know that you will get the best taste and quality in your granola, every
