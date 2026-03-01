@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-FROM oven/bun:1.3.9-alpine AS build
+FROM oven/bun:1.3.10-alpine AS build
 
 WORKDIR /app
 COPY . ./
 
 RUN bun i --no-cache && bun b
 
-FROM oven/bun:1.3.9-alpine
+FROM oven/bun:1.3.10-alpine
 
 WORKDIR /app
 COPY --from=build /app/build ./build
