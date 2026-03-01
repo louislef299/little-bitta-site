@@ -3,7 +3,9 @@ services:
   bun:
     build: .
     container_name: bun
-    env_file: ".env.production"
+    env_file:
+    - path: ".env.production"
+      required: false
     environment:
     - NODE_ENV=production
     networks:
