@@ -47,3 +47,5 @@ caddy.pid
 caddy_data
 caddy.log
 certs/
+
+bin
