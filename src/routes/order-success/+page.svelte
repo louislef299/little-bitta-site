@@ -4,11 +4,7 @@
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
 
-  const orderID = $derived(
-    page.url.searchParams.get('session_id')
-    || page.url.searchParams.get('paypal_order_id')
-    || ''
-  );
+  const orderID = $derived(page.url.searchParams.get('session_id') || '');
   let { data }: PageProps = $props();
 
   onMount(() => {
@@ -16,11 +12,10 @@
     if (data.success) {
       emptyCart();
     }
-    // Clean up the URL (remove order query params)
-    const cleanUrl = new URL(window.location.href);
-    cleanUrl.searchParams.delete('session_id');
-    cleanUrl.searchParams.delete('paypal_order_id');
-    if (cleanUrl.href !== window.location.href) {
+    // Clean up the URL (remove session_id query param)
+    if (page.url.searchParams.has('session_id')) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('session_id');
       history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
     }
   })
